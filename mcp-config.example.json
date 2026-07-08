@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "memomcp": {
+      "command": "python",
+      "args": ["-m", "app.main", "--mcp"],
+      "cwd": "/path/to/MemoMCP/memory-server",
+      "env": {
+        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
+        "AI_MEMORY_MANAGER": "false",
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}

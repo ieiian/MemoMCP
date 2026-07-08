@@ -1,0 +1,51 @@
+# ============================================================
+# MemoMCP Docker Compose
+# 启动: docker compose up -d
+# ============================================================
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: memomcp-postgres
+    environment:
+      POSTGRES_USER: memomcp
+      POSTGRES_PASSWORD: memomcp
+      POSTGRES_DB: memomcp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U memomcp -d memomcp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  memory-server:
+    build:
+      context: ./memory-server
+      dockerfile: Dockerfile
+    container_name: memomcp-server
+    env_file:
+      - .env
+    environment:
+      # 覆盖 DATABASE_URL 指向 compose 内部网络
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
