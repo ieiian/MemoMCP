@@ -17,8 +17,11 @@ from app.database import get_db
 from app.schemas import (
     ClearWorkspaceRequest,
     DeleteResult,
+    ExportResponse,
     GlobalStats,
     HealthResponse,
+    ImportRequest,
+    ImportResult,
     MemoryCreate,
     MemoryResponse,
     MemoryUpdate,
@@ -238,3 +241,32 @@ async def clear_workspace(
         deleted=count,
         message=f"Cleared {count} memories from workspace '{workspace_id}'",
     )
+
+
+# ============================================================
+# 导入导出
+# ============================================================
+@router.get(
+    "/export",
+    response_model=ExportResponse,
+    tags=["backup"],
+)
+async def export_memories(
+    workspace_id: str | None = Query(None, description="按工作区导出，留空导出全部"),
+    service: MemoryService = Depends(get_service),
+) -> ExportResponse:
+    """导出记忆数据为 JSON（不含向量）。"""
+    return await service.export_memories(workspace_id)
+
+
+@router.post(
+    "/import",
+    response_model=ImportResult,
+    tags=["backup"],
+)
+async def import_memories(
+    data: ImportRequest,
+    service: MemoryService = Depends(get_service),
+) -> ImportResult:
+    """从 JSON 批量导入记忆。"""
+    return await service.import_memories(data)

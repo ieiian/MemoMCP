@@ -10,11 +10,13 @@ AI 工具（3 个，需 AI_MEMORY_MANAGER=true）: analyze/summarize/merge
 
 from __future__ import annotations
 
+import functools
 import logging
 from uuid import UUID
 
 from fastmcp import FastMCP
 
+from app.activity import track_async
 from app.database import async_session_factory
 from app.embedding import get_embedding_provider
 from app.llm import get_llm_provider
@@ -60,10 +62,21 @@ def _validate_uuid(memory_id: str) -> UUID:
         raise ValueError(f"Invalid UUID: '{memory_id}'")
 
 
+def track_mcp(func):
+    """MCP 工具调用追踪装饰器。"""
+
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        return await track_async("mcp", func.__name__, func(*args, **kwargs))
+
+    return wrapper
+
+
 # ============================================================
 # 1. save_memory
 # ============================================================
 @mcp.tool
+@track_mcp
 async def save_memory(
     workspace_id: str,
     memory_type: str,
@@ -113,6 +126,7 @@ async def save_memory(
 # 2. search_memory
 # ============================================================
 @mcp.tool
+@track_mcp
 async def search_memory(
     workspace_id: str,
     query: str,
@@ -160,6 +174,7 @@ async def search_memory(
 # 3. update_memory
 # ============================================================
 @mcp.tool
+@track_mcp
 async def update_memory(
     memory_id: str,
     title: str | None = None,
@@ -224,6 +239,7 @@ async def update_memory(
 # 4. delete_memory
 # ============================================================
 @mcp.tool
+@track_mcp
 async def delete_memory(memory_id: str) -> dict:
     """Delete a memory by its ID.
 
@@ -247,6 +263,7 @@ async def delete_memory(memory_id: str) -> dict:
 # 5. get_memory
 # ============================================================
 @mcp.tool
+@track_mcp
 async def get_memory(memory_id: str) -> dict:
     """Get a single memory by its ID.
 
@@ -272,6 +289,7 @@ async def get_memory(memory_id: str) -> dict:
 # 6. list_memory
 # ============================================================
 @mcp.tool
+@track_mcp
 async def list_memory(
     workspace_id: str,
     memory_type: str | None = None,
@@ -317,6 +335,7 @@ async def list_memory(
 # 7. clear_workspace
 # ============================================================
 @mcp.tool
+@track_mcp
 async def clear_workspace(workspace_id: str, confirm: bool = False) -> dict:
     """Delete ALL memories in a workspace. This is irreversible.
 
@@ -347,6 +366,7 @@ async def clear_workspace(workspace_id: str, confirm: bool = False) -> dict:
 # 8. analyze_memory (AI Manager 模式)
 # ============================================================
 @mcp.tool
+@track_mcp
 async def analyze_memory(memory_id: str) -> dict:
     """Analyze a memory and provide AI-powered recommendations.
 
@@ -381,6 +401,7 @@ async def analyze_memory(memory_id: str) -> dict:
 # 9. summarize_memory (AI Manager 模式)
 # ============================================================
 @mcp.tool
+@track_mcp
 async def summarize_memory(
     workspace_id: str,
     limit: int = 20,
@@ -419,6 +440,7 @@ async def summarize_memory(
 # 10. merge_memory (AI Manager 模式)
 # ============================================================
 @mcp.tool
+@track_mcp
 async def merge_memory(memory_ids: list[str]) -> dict:
     """Merge multiple similar memories into one using AI.
 

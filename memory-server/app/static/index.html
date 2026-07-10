@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理台 — MemoMCP</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/theme.css">
+  <link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="/" class="brand">
+        <span class="brand-icon">M</span>
+        <span class="brand-text">MemoMCP</span>
+      </a>
+      <nav class="site-nav">
+        <a href="/">首页</a>
+        <a href="/admin" class="active">管理</a>
+        <a href="/docs">API 文档</a>
+        <a href="/redoc">ReDoc</a>
+      </nav>
+      <div class="header-extra" id="statusBar">
+        <span class="badge"><span class="dot ok" id="dbDot"></span> 数据库</span>
+        <span class="badge"><span class="dot ok" id="apiDot"></span> REST</span>
+        <span class="badge"><span class="dot" id="mcpDot"></span> MCP <span id="mcpLabel">待机</span></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <h1 class="page-title">管理台</h1>
+    <p class="page-desc">监控服务状态、管理记忆数据、备份与迁移</p>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="overview">概览</button>
+      <button class="tab" data-tab="activity">活动日志</button>
+      <button class="tab" data-tab="memories">记忆管理</button>
+      <button class="tab" data-tab="backup">备份迁移</button>
+    </div>
+
+    <!-- 概览 -->
+    <div class="panel active" id="panel-overview">
+      <div class="grid grid-3" id="statsGrid">
+        <div class="card"><h3>记忆总数</h3><div class="value" id="statTotal">-</div></div>
+        <div class="card"><h3>工作区数</h3><div class="value" id="statWorkspaces">-</div></div>
+        <div class="card"><h3>MCP 调用</h3><div class="value" id="statMcpCalls">-</div></div>
+        <div class="card"><h3>REST 调用</h3><div class="value" id="statRestCalls">-</div></div>
+        <div class="card"><h3>Embedding</h3><div class="value stat-value-sm" id="statEmbedding">-</div></div>
+        <div class="card"><h3>AI 治理</h3><div class="value stat-value-sm" id="statAi">-</div></div>
+      </div>
+      <div class="card" style="margin-top:20px">
+        <h3>工作区分布</h3>
+        <div class="table-wrap" style="margin-top:12px;border:none;background:transparent">
+          <table id="workspaceTable">
+            <thead><tr><th>工作区</th><th>记忆数</th><th>平均重要度</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 活动日志 -->
+    <div class="panel" id="panel-activity">
+      <div class="toolbar">
+        <button class="btn-secondary btn-sm" id="clearLog">清空显示</button>
+        <span class="text-muted text-sm">实时 SSE 推送 MCP 与 REST 调用</span>
+      </div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+
+    <!-- 记忆管理 -->
+    <div class="panel" id="panel-memories">
+      <div class="toolbar">
+        <select id="wsSelect"><option value="">选择工作区</option></select>
+        <input type="text" id="wsInput" placeholder="或输入工作区 ID" style="width:160px">
+        <select id="typeFilter"><option value="">全部类型</option></select>
+        <input type="text" id="searchInput" placeholder="搜索关键词..." style="width:200px">
+        <button class="btn-primary" id="btnSearch">搜索</button>
+        <button class="btn-primary" id="btnAdd">添加记忆</button>
+        <button class="btn-danger btn-sm" id="btnClearWs">清空工作区</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>类型</th><th>标题</th><th>内容</th><th>重要度</th><th>更新时间</th><th>操作</th></tr>
+          </thead>
+          <tbody id="memoryTable"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="memoryEmpty" style="display:none">暂无数据，请选择工作区或添加记忆</div>
+    </div>
+
+    <!-- 备份迁移 -->
+    <div class="panel" id="panel-backup">
+      <div class="grid grid-2 backup-grid">
+        <div class="card">
+          <div class="section-title">导出备份</div>
+          <p class="text-muted text-sm" style="margin-bottom:14px">导出为 JSON 文件，不含向量数据，迁移后自动重新生成。</p>
+          <div class="toolbar">
+            <input type="text" id="exportWs" placeholder="工作区 ID（留空导出全部）">
+            <button class="btn-primary" id="btnExport">导出 JSON</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-title">导入恢复</div>
+          <p class="text-muted text-sm" style="margin-bottom:14px">从 JSON 文件批量导入记忆数据。</p>
+          <label class="import-area" id="importArea">
+            点击或拖拽 JSON 文件到此处
+            <input type="file" id="importFile" accept=".json" hidden>
+          </label>
+          <label class="text-sm" style="display:flex;align-items:center;gap:8px;margin-top:14px;color:var(--text-secondary)">
+            <input type="checkbox" id="skipExisting" checked> 跳过已存在的内容
+          </label>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 添加记忆弹窗 -->
+  <div class="modal-overlay" id="memoryModal">
+    <div class="modal">
+      <h2 id="modalTitle">添加记忆</h2>
+      <div class="form-group">
+        <label>工作区 ID</label>
+        <input type="text" id="formWs" required>
+      </div>
+      <div class="form-group">
+        <label>类型</label>
+        <select id="formType"></select>
+      </div>
+      <div class="form-group">
+        <label>标题</label>
+        <input type="text" id="formTitle">
+      </div>
+      <div class="form-group">
+        <label>内容</label>
+        <textarea id="formContent" required></textarea>
+      </div>
+      <div class="form-group">
+        <label>标签（逗号分隔）</label>
+        <input type="text" id="formTags">
+      </div>
+      <div class="form-group">
+        <label>重要度 (0-1)</label>
+        <input type="number" id="formImportance" min="0" max="1" step="0.1" value="0.5">
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" id="btnModalCancel">取消</button>
+        <button class="btn-primary" id="btnModalSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '/api/v1';
+    const MEMORY_TYPES = [
+      'rule','preference','decision','architecture','knowledge',
+      'bug','solution','snippet','todo','api','command','experience'
+    ];
+
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    async function api(path, opts = {}) {
+      const res = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      if (res.status === 204) return null;
+      return res.json();
+    }
+
+    function toast(msg, isError = false) {
+      const el = $('#toast');
+      el.textContent = msg;
+      el.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return '-';
+      return new Date(iso).toLocaleString('zh-CN');
+    }
+
+    function currentWs() {
+      return $('#wsSelect').value || $('#wsInput').value.trim();
+    }
+
+    $$('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        $$('.tab').forEach(t => t.classList.remove('active'));
+        $$('.panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        $('#panel-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    function initTypeSelects() {
+      [$('#typeFilter'), $('#formType')].forEach(sel => {
+        MEMORY_TYPES.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t; opt.textContent = t;
+          sel.appendChild(opt);
+        });
+      });
+    }
+
+    async function loadSystem() {
+      try {
+        const sys = await fetch('/admin/system').then(r => r.json());
+        const act = sys.activity || {};
+        $('#statMcpCalls').textContent = act.total_mcp_calls ?? 0;
+        $('#statRestCalls').textContent = act.total_rest_calls ?? 0;
+        $('#statEmbedding').textContent = sys.embedding_provider || '未配置';
+        $('#statAi').textContent = sys.ai_memory_manager ? '已启用' : '未启用';
+
+        $('#dbDot').className = 'dot ' + (sys.database === 'ok' ? 'ok' : 'error');
+
+        const mcpActive = act.active_mcp_calls > 0;
+        const mcpRecent = act.last_mcp_at;
+        if (mcpActive) {
+          $('#mcpDot').className = 'dot active';
+          $('#mcpLabel').textContent = `调用中 (${act.active_mcp_calls})`;
+        } else if (mcpRecent) {
+          $('#mcpDot').className = 'dot ok';
+          $('#mcpLabel').textContent = '已连接';
+        } else {
+          $('#mcpDot').className = 'dot';
+          $('#mcpLabel').textContent = '待机';
+        }
+      } catch {
+        $('#apiDot').className = 'dot error';
+      }
+    }
+
+    async function loadStats() {
+      const stats = await api('/stats');
+      $('#statTotal').textContent = stats.total_memories;
+      $('#statWorkspaces').textContent = stats.total_workspaces;
+
+      const tbody = $('#workspaceTable tbody');
+      tbody.innerHTML = '';
+      const wsSelect = $('#wsSelect');
+      const cur = wsSelect.value;
+      wsSelect.innerHTML = '<option value="">选择工作区</option>';
+
+      (stats.workspaces || []).forEach(ws => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${ws.workspace_id}</td>
+          <td>${ws.total_memories}</td>
+          <td>${ws.avg_importance}</td>
+          <td><button class="btn-secondary btn-sm" data-ws="${ws.workspace_id}">查看</button></td>`;
+        tbody.appendChild(tr);
+        const opt = document.createElement('option');
+        opt.value = ws.workspace_id;
+        opt.textContent = `${ws.workspace_id} (${ws.total_memories})`;
+        wsSelect.appendChild(opt);
+      });
+      if (cur) wsSelect.value = cur;
+
+      tbody.querySelectorAll('button[data-ws]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          wsSelect.value = btn.dataset.ws;
+          $$('.tab')[2].click();
+          loadMemories();
+        });
+      });
+    }
+
+    let eventSource = null;
+    function startSSE() {
+      if (eventSource) return;
+      eventSource = new EventSource('/admin/activity/stream');
+      eventSource.onmessage = (e) => {
+        try { appendLog(JSON.parse(e.data)); } catch {}
+        loadSystem();
+      };
+      eventSource.onerror = () => {
+        eventSource.close();
+        eventSource = null;
+        setTimeout(startSSE, 5000);
+      };
+    }
+
+    function appendLog(ev) {
+      const box = $('#logBox');
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      const srcClass = ev.source === 'mcp' ? 'src-mcp' : 'src-rest';
+      const statusClass = ev.status === 'error' ? ' err' : '';
+      div.innerHTML = `<span class="text-muted">${fmtTime(ev.timestamp)}</span> `
+        + `<span class="${srcClass}">[${ev.source.toUpperCase()}]</span> `
+        + `<span class="${statusClass}">${ev.action}</span> `
+        + `<span class="text-muted">${ev.duration_ms}ms</span>`
+        + (ev.detail ? ` <span class="err">${ev.detail}</span>` : '');
+      box.prepend(div);
+      while (box.children.length > 200) box.lastChild.remove();
+    }
+
+    $('#clearLog').addEventListener('click', () => { $('#logBox').innerHTML = ''; });
+
+    async function loadMemories() {
+      const ws = currentWs();
+      if (!ws) {
+        $('#memoryTable').innerHTML = '';
+        $('#memoryEmpty').style.display = 'block';
+        return;
+      }
+      $('#memoryEmpty').style.display = 'none';
+      const type = $('#typeFilter').value;
+      let url = `/memories?workspace_id=${encodeURIComponent(ws)}&limit=100`;
+      if (type) url += `&memory_type=${type}`;
+
+      const memories = await api(url);
+      const tbody = $('#memoryTable');
+      tbody.innerHTML = '';
+      if (!memories.length) {
+        $('#memoryEmpty').style.display = 'block';
+        return;
+      }
+      memories.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><span class="tag type-badge">${m.memory_type}</span></td>
+          <td>${m.title || '-'}</td>
+          <td class="content-preview" title="${m.content.replace(/"/g,'&quot;')}">${m.content}</td>
+          <td>${m.importance}</td>
+          <td>${fmtTime(m.updated_at)}</td>
+          <td><button class="btn-danger btn-sm" data-id="${m.id}">删除</button></td>`;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('确认删除此记忆？')) return;
+          await api(`/memories/${btn.dataset.id}`, { method: 'DELETE' });
+          toast('已删除');
+          loadMemories();
+          loadStats();
+        });
+      });
+    }
+
+    $('#btnSearch').addEventListener('click', async () => {
+      const ws = currentWs();
+      const query = $('#searchInput').value.trim();
+      if (!ws || !query) { toast('请输入工作区和搜索词', true); return; }
+      const type = $('#typeFilter').value || null;
+      const res = await api('/search', {
+        method: 'POST',
+        body: JSON.stringify({ workspace_id: ws, query, memory_type: type, top_k: 50 }),
+      });
+      const tbody = $('#memoryTable');
+      tbody.innerHTML = '';
+      $('#memoryEmpty').style.display = res.results.length ? 'none' : 'block';
+      res.results.forEach(r => {
+        const m = r.memory;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><span class="tag type-badge">${m.memory_type}</span></td>
+          <td>${m.title || '-'}</td>
+          <td class="content-preview">${m.content}</td>
+          <td>${m.importance} <span class="text-muted">(${r.score.toFixed(2)})</span></td>
+          <td>${fmtTime(m.updated_at)}</td>
+          <td><button class="btn-danger btn-sm" data-id="${m.id}">删除</button></td>`;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('确认删除？')) return;
+          await api(`/memories/${btn.dataset.id}`, { method: 'DELETE' });
+          toast('已删除');
+          $('#btnSearch').click();
+        });
+      });
+    });
+
+    $('#btnAdd').addEventListener('click', () => {
+      $('#modalTitle').textContent = '添加记忆';
+      $('#formWs').value = currentWs();
+      $('#formTitle').value = '';
+      $('#formContent').value = '';
+      $('#formTags').value = '';
+      $('#formImportance').value = '0.5';
+      $('#formType').value = 'knowledge';
+      $('#memoryModal').classList.add('show');
+    });
+    $('#btnModalCancel').addEventListener('click', () => {
+      $('#memoryModal').classList.remove('show');
+    });
+    $('#btnModalSave').addEventListener('click', async () => {
+      const ws = $('#formWs').value.trim();
+      const content = $('#formContent').value.trim();
+      if (!ws || !content) { toast('工作区和内容为必填', true); return; }
+      const tags = $('#formTags').value.split(',').map(t => t.trim()).filter(Boolean);
+      await api('/memories', {
+        method: 'POST',
+        body: JSON.stringify({
+          workspace_id: ws,
+          memory_type: $('#formType').value,
+          title: $('#formTitle').value || null,
+          content,
+          tags,
+          importance: parseFloat($('#formImportance').value),
+          source: 'manual',
+        }),
+      });
+      $('#memoryModal').classList.remove('show');
+      toast('记忆已添加');
+      $('#wsInput').value = ws;
+      loadMemories();
+      loadStats();
+    });
+
+    $('#btnClearWs').addEventListener('click', async () => {
+      const ws = currentWs();
+      if (!ws) { toast('请选择工作区', true); return; }
+      if (!confirm(`确认清空工作区 "${ws}" 的全部记忆？此操作不可恢复！`)) return;
+      if (!confirm('再次确认：将永久删除所有数据')) return;
+      const res = await api(`/workspaces/${encodeURIComponent(ws)}?confirm=true`, { method: 'DELETE' });
+      toast(res.message || '已清空');
+      loadMemories();
+      loadStats();
+    });
+
+    $('#btnExport').addEventListener('click', async () => {
+      const ws = $('#exportWs').value.trim();
+      let url = API + '/export';
+      if (ws) url += `?workspace_id=${encodeURIComponent(ws)}`;
+      const data = await fetch(url).then(r => r.json());
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `memomcp-export-${ws || 'all'}-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast(`已导出 ${data.total} 条记忆`);
+    });
+
+    async function handleImport(file) {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const memories = data.memories || data;
+      if (!Array.isArray(memories) || !memories.length) {
+        toast('无效的导入文件', true);
+        return;
+      }
+      const res = await api('/import', {
+        method: 'POST',
+        body: JSON.stringify({
+          memories,
+          skip_existing: $('#skipExisting').checked,
+        }),
+      });
+      toast(`导入完成：成功 ${res.imported}，跳过 ${res.skipped}，失败 ${res.failed}`);
+      loadStats();
+      loadMemories();
+    }
+
+    $('#importArea').addEventListener('click', () => $('#importFile').click());
+    $('#importFile').addEventListener('change', (e) => {
+      if (e.target.files[0]) handleImport(e.target.files[0]);
+    });
+    $('#importArea').addEventListener('dragover', (e) => { e.preventDefault(); });
+    $('#importArea').addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.files[0]) handleImport(e.dataTransfer.files[0]);
+    });
+
+    $('#wsSelect').addEventListener('change', loadMemories);
+    $('#wsInput').addEventListener('change', loadMemories);
+
+    initTypeSelects();
+    loadSystem();
+    loadStats();
+    startSSE();
+    setInterval(loadSystem, 10000);
+    setInterval(loadStats, 30000);
+  </script>
+</body>
+</html>

@@ -1,22 +1,18 @@
 # ============================================================
-# MemoMCP Docker Compose
-# 启动: docker compose up -d
+# MemoMCP Docker Compose — Host Network（真正 Host 模式）
 #
-# 使用远程镜像（默认）:
-#   docker compose pull && docker compose up -d
+# network_mode: host — 容器与宿主机共享网络栈，无端口映射、无 bridge
+# DATABASE_URL 使用 127.0.0.1，postgres 与 memory-server 通过宿主机回环地址通信
 #
-# 本地构建后模拟远程镜像:
-#   cd memory-server && docker build -t ieiian/memomcp-server:latest -f Dockerfile .
-#   cd .. && docker compose up -d
+# 适用：Linux 服务器（Mac/Windows Docker Desktop 对 host 网络支持有限，请用默认 bridge）
 #
+# 启动: docker compose -f docker-compose.host.yml up -d
+#
+# 前置：宿主机 5432、8000 端口未被占用
 # 自定义镜像: 在 .env 中设置 MEMOMCP_IMAGE=your-registry/memomcp-server:tag
 # ============================================================
 services:
-  # ------------------------------------------------------------
-  # init 容器：从 memory-server 镜像中提取 init.sql 到共享卷
-  # 避免 ./init/init.sql 不存在时被 Docker 创建为目录
-  # 需 root 写入 Docker 命名卷
-  # ------------------------------------------------------------
+  # 从镜像提取 init.sql（init-db 无需 host 网络）
   init-db:
     image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
     container_name: memomcp-init-db
@@ -32,15 +28,16 @@ services:
   postgres:
     image: pgvector/pgvector:pg17
     container_name: memomcp-postgres
+    network_mode: host
     environment:
       POSTGRES_USER: memomcp
       POSTGRES_PASSWORD: memomcp
       POSTGRES_DB: memomcp
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - db-init:/docker-entrypoint-initdb.d:ro
+      # 也可改用宿主机目录（需先复制 init.sql 到 ./init/）:
+      # - ./init/:/docker-entrypoint-initdb.d/:ro
     depends_on:
       init-db:
         condition: service_completed_successfully
@@ -51,38 +48,28 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
-    networks:
-      - memomcp-net
 
   memory-server:
     image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
     container_name: memomcp-server
+    network_mode: host
     env_file:
       - .env
     environment:
-      # 容器间直连，走 memomcp-net 内部网络（推荐）
-      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
-    ports:
-      - "8000:8000"
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@127.0.0.1:5432/memomcp
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
     restart: unless-stopped
-    networks:
-      - memomcp-net
 
 volumes:
   pgdata:
     driver: local
   db-init:
     driver: local
-
-networks:
-  memomcp-net:
-    driver: bridge

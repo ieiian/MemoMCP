@@ -1,0 +1,180 @@
+/* ReDoc 暗色主题覆盖 */
+
+html, body {
+  margin: 0;
+  background: var(--bg) !important;
+  color-scheme: dark;
+}
+
+redoc {
+  --redoc-font-family: var(--font-sans);
+  --redoc-monospace-font-family: var(--font-mono);
+  display: block;
+  background: var(--bg);
+}
+
+/* ReDoc 2 根容器 */
+.redoc-wrap,
+div[data-role="redoc"],
+.redoc-container {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+/* 左侧菜单 */
+.redoc-wrap .menu-content,
+.redoc-wrap .-menu-content,
+.redoc-wrap .menu-content-label,
+.redoc-wrap .scrollbar-container,
+.redoc-container .menu-content,
+.redoc-container .scrollbar-container,
+div[class*="MenuContent"],
+div[class*="menu-content"] {
+  background: var(--surface) !important;
+  background-color: var(--surface) !important;
+  border-right: 1px solid var(--border) !important;
+}
+
+.redoc-wrap .menu-item,
+.redoc-wrap .menu-item-label,
+.redoc-wrap .menu-item-title,
+.redoc-wrap label[type="tag"],
+.redoc-container .menu-item {
+  color: var(--text-secondary) !important;
+}
+
+.redoc-wrap .menu-item.active,
+.redoc-wrap .menu-item:hover,
+.redoc-wrap li[data-item-id].active > label,
+.redoc-wrap li[data-item-id]:hover > label {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+}
+
+.redoc-wrap .api-content,
+.redoc-container .api-content,
+.redoc-wrap .api-info,
+.redoc-wrap .api-content > div {
+  background: var(--bg) !important;
+  background-color: var(--bg) !important;
+}
+
+.redoc-wrap h1,
+.redoc-wrap h2,
+.redoc-wrap h3,
+.redoc-wrap h4,
+.redoc-container .api-info h1 {
+  color: var(--text) !important;
+}
+
+.redoc-wrap p,
+.redoc-wrap li,
+.redoc-wrap td,
+.redoc-wrap th,
+.redoc-wrap span,
+.redoc-wrap div {
+  color: inherit;
+}
+
+.redoc-wrap p,
+.redoc-wrap li,
+.redoc-wrap td,
+.redoc-wrap th {
+  color: var(--text-secondary) !important;
+}
+
+.redoc-wrap a,
+.redoc-wrap a:visited {
+  color: var(--accent) !important;
+}
+
+.redoc-wrap .http-verb {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600 !important;
+}
+
+.redoc-wrap pre,
+.redoc-wrap .redoc-json code,
+.redoc-wrap [class*="CodeBlock"],
+.redoc-wrap [class*="code-block"] {
+  background: var(--bg-elevated) !important;
+  background-color: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text) !important;
+}
+
+.redoc-wrap code,
+.redoc-json code {
+  color: var(--accent) !important;
+  background: var(--bg-elevated) !important;
+}
+
+/* 右侧 Schema 面板 */
+.redoc-wrap .react-tabs__tab-panel,
+.redoc-wrap [class*="RightPanel"],
+.redoc-wrap [class*="right-panel"],
+.redoc-wrap .api-response,
+.redoc-wrap .api-request {
+  background: var(--bg) !important;
+}
+
+.redoc-wrap .menu-content input,
+.redoc-wrap .search-input,
+.redoc-wrap input[type="text"] {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.redoc-wrap .menu-content label,
+.redoc-wrap .search-icon {
+  color: var(--muted) !important;
+}
+
+.redoc-wrap .react-tabs__tab--selected {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+.redoc-wrap table tr,
+.redoc-wrap table td,
+.redoc-wrap table th {
+  border-color: var(--border) !important;
+  background: transparent !important;
+}
+
+.redoc-wrap .token.string { color: var(--ok) !important; }
+.redoc-wrap .token.number { color: var(--warn) !important; }
+.redoc-wrap .token.boolean { color: var(--mcp) !important; }
+.redoc-wrap .token.key { color: var(--accent) !important; }
+
+/* 滚动区域底色 */
+.redoc-wrap .scrollbar-container,
+.redoc-wrap [class*="ScrollWrap"],
+.redoc-wrap [class*="scroll-container"] {
+  background: var(--surface) !important;
+  scrollbar-color: var(--border-light) var(--bg-elevated);
+}
+
+/* ReDoc theme CSS 变量（配合 web.py 内联 theme） */
+.redoc-wrap {
+  --fg-color: var(--text);
+  --primary-color: var(--accent);
+  --border-color: var(--border);
+  --sidebar-background-color: var(--surface);
+  --right-panel-background-color: var(--bg);
+  --code-background-color: var(--bg-elevated);
+  --code-color: var(--accent);
+  --link-color: var(--accent);
+  --text-color: var(--text-secondary);
+  --secondary-text-color: var(--muted);
+  --background-color: var(--bg);
+}
+
+/* 分组标签 */
+.redoc-wrap [class*="OperationBadge"],
+.redoc-wrap .operation-type {
+  opacity: 0.9;
+}

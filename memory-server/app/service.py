@@ -8,6 +8,7 @@ Phase 5：集成 Embedding Provider，save 时生成向量，search 时 Hybrid S
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,11 +17,15 @@ from app.embedding import get_embedding_provider
 from app.embedding.base import EmbeddingProvider
 from app.llm import get_llm_provider
 from app.llm.base import LLMProvider
-from app.models import Memory
+from app.models import Memory, MemoryType
 from app.repository import MemoryRepository
 from app.schemas import (
+    ExportResponse,
     GlobalStats,
+    ImportRequest,
+    ImportResult,
     MemoryCreate,
+    MemoryExportItem,
     MemoryResponse,
     MemoryUpdate,
     SearchRequest,
@@ -391,4 +396,79 @@ class MemoryService:
             total_memories=total,
             by_type=by_type,
             avg_importance=round(avg, 3),
+        )
+
+    # ============================================================
+    # 导入导出
+    # ============================================================
+
+    async def export_memories(
+        self,
+        workspace_id: str | None = None,
+    ) -> ExportResponse:
+        """导出记忆数据（不含向量）。"""
+        memories = await self.repo.list_all(workspace_id)
+        items = [
+            MemoryExportItem(
+                workspace_id=m.workspace_id,
+                memory_type=m.memory_type,
+                title=m.title,
+                content=m.content,
+                summary=m.summary,
+                tags=m.tags or [],
+                metadata=m.metadata_ or {},
+                importance=m.importance,
+                source=m.source,
+                created_at=m.created_at,
+                updated_at=m.updated_at,
+            )
+            for m in memories
+        ]
+        return ExportResponse(
+            exported_at=datetime.now(timezone.utc),
+            workspace_id=workspace_id,
+            total=len(items),
+            memories=items,
+        )
+
+    async def import_memories(self, request: ImportRequest) -> ImportResult:
+        """批量导入记忆，导入时重新生成向量。"""
+        imported = 0
+        skipped = 0
+        failed = 0
+        errors: list[str] = []
+
+        for idx, item in enumerate(request.memories):
+            try:
+                if request.skip_existing and await self.repo.exists_by_content(
+                    item.workspace_id, item.content
+                ):
+                    skipped += 1
+                    continue
+
+                mem_type = MemoryType(item.memory_type)
+                await self.create_memory(
+                    MemoryCreate(
+                        workspace_id=item.workspace_id,
+                        memory_type=mem_type,
+                        title=item.title,
+                        content=item.content,
+                        summary=item.summary,
+                        tags=item.tags,
+                        metadata=item.metadata,
+                        importance=item.importance,
+                        source=item.source,
+                    )
+                )
+                imported += 1
+            except Exception as e:
+                failed += 1
+                errors.append(f"第 {idx + 1} 条: {e}")
+                logger.warning("Import failed at index %d: %s", idx, e)
+
+        return ImportResult(
+            imported=imported,
+            skipped=skipped,
+            failed=failed,
+            errors=errors[:20],
         )

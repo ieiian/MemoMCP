@@ -144,3 +144,66 @@ class HealthResponse(BaseModel):
     status: str = "ok"
     database: str = "unknown"
     version: str = ""
+
+
+# ============================================================
+# 导入导出
+# ============================================================
+class MemoryExportItem(BaseModel):
+    """导出单条记忆（不含向量）。"""
+
+    workspace_id: str
+    memory_type: str
+    title: str | None = None
+    content: str
+    summary: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict = Field(default_factory=dict)
+    importance: float = 0.5
+    source: str = "manual"
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+
+class ExportResponse(BaseModel):
+    """导出响应。"""
+
+    version: str = "0.1.0"
+    exported_at: datetime
+    workspace_id: str | None = None
+    total: int
+    memories: list[MemoryExportItem]
+
+
+class ImportRequest(BaseModel):
+    """导入请求。"""
+
+    memories: list[MemoryExportItem] = Field(..., min_length=1)
+    skip_existing: bool = Field(
+        default=False,
+        description="按 workspace_id + content 去重跳过已存在记录",
+    )
+
+
+class ImportResult(BaseModel):
+    """导入结果。"""
+
+    imported: int
+    skipped: int
+    failed: int
+    errors: list[str] = Field(default_factory=list)
+
+
+# ============================================================
+# 系统状态
+# ============================================================
+class SystemStatus(BaseModel):
+    """系统运行状态。"""
+
+    version: str
+    rest_api: str
+    database: str
+    embedding_provider: str | None
+    ai_memory_manager: bool
+    mcp_transport: str
+    activity: dict = Field(default_factory=dict)

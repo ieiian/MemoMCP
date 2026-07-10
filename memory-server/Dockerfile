@@ -32,5 +32,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 
 EXPOSE 8000
 
-# 默认启动 REST API（MCP stdio 模式由 client 直接调用 python -m app.main）
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 默认启动 REST API（MCP stdio 模式由 client 直接调用 python -m app.main --mcp）
+CMD ["python", "-m", "app.main"]

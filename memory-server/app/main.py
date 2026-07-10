@@ -22,24 +22,95 @@ import argparse
 import asyncio
 import logging
 import sys
+import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
+from app.activity import tracker
 from app.api import router
 from app.config import get_settings
 from app.database import close_db, init_db
+from app.web import router as admin_router
 
 settings = get_settings()
 
 # 日志配置（输出到 stderr，MCP stdio 模式下不污染 stdout）
 _log_level_num = getattr(logging, settings.log_level.upper(), logging.INFO)
+_log_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 logging.basicConfig(
     level=_log_level_num,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format=_log_format,
     stream=sys.stderr,
 )
 logger = logging.getLogger(__name__)
+
+# uvicorn 日志配置（让 access log 也带日期时间）
+UVICORN_LOG_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "format": _log_format,
+        },
+    },
+    "handlers": {
+        "default": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stderr",
+        },
+    },
+    "loggers": {
+        "": {"handlers": ["default"], "level": settings.log_level.upper()},
+        "uvicorn": {"handlers": ["default"], "level": "INFO", "propagate": False},
+        "uvicorn.access": {"handlers": ["default"], "level": "INFO", "propagate": False},
+        "uvicorn.error": {"handlers": ["default"], "level": "INFO", "propagate": False},
+    },
+}
+
+
+# ============================================================
+# 活动追踪中间件
+# ============================================================
+class ActivityMiddleware(BaseHTTPMiddleware):
+    """记录 REST API 调用活动。"""
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        skip = (
+            path.startswith("/admin/activity/stream")
+            or path in ("/admin", "/", "/redoc")
+            or path.startswith("/static")
+            or path.startswith("/docs")
+            or path.startswith("/openapi")
+        )
+        if not path.startswith("/api/v1") or skip:
+            return await call_next(request)
+
+        action = f"{request.method} {path}"
+        tracker.begin("rest")
+        start = time.perf_counter()
+        status = "ok"
+        detail = ""
+        try:
+            response = await call_next(request)
+            if response.status_code >= 400:
+                status = "error"
+                detail = f"HTTP {response.status_code}"
+            return response
+        except Exception as e:
+            status = "error"
+            detail = str(e)
+            raise
+        finally:
+            duration_ms = (time.perf_counter() - start) * 1000
+            tracker.record("rest", action, status, duration_ms, detail)
+            tracker.end("rest")
 
 
 # ============================================================
@@ -61,19 +132,16 @@ app = FastAPI(
     description="Universal long-term memory service for AI coding tools",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
 )
 
+_STATIC_DIR = Path(__file__).parent / "static"
+
+app.add_middleware(ActivityMiddleware)
+app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 app.include_router(router, prefix="/api/v1")
-
-
-@app.get("/", tags=["root"])
-async def root() -> dict:
-    return {
-        "name": "MemoMCP",
-        "version": "0.1.0",
-        "docs": "/docs",
-        "api": "/api/v1",
-    }
+app.include_router(admin_router)
 
 
 # ============================================================
@@ -138,6 +206,7 @@ def main() -> None:
             host=settings.rest_host,
             port=args.port,
             log_level=settings.log_level.lower(),
+            log_config=UVICORN_LOG_CONFIG,
         )
 
 

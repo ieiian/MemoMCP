@@ -1,22 +1,15 @@
 # ============================================================
-# MemoMCP Docker Compose
-# 启动: docker compose up -d
+# MemoMCP Docker Compose — 宿主机绕行模式（兼容方案）
 #
-# 使用远程镜像（默认）:
-#   docker compose pull && docker compose up -d
+# 注意：这不是 Docker 的 network_mode: host，仍是 bridge 网络。
+# memory-server 通过 host.docker.internal 经宿主机 5432 端口转发到 postgres。
 #
-# 本地构建后模拟远程镜像:
-#   cd memory-server && docker build -t ieiian/memomcp-server:latest -f Dockerfile .
-#   cd .. && docker compose up -d
+# 适用：Colima / 部分 Mac Docker 环境下容器名互联异常时的兜底方案。
+# 常规部署请使用默认的 docker-compose.yml（容器间直连）。
 #
-# 自定义镜像: 在 .env 中设置 MEMOMCP_IMAGE=your-registry/memomcp-server:tag
+# 启动: docker compose -f docker-compose.host-gateway.yml up -d
 # ============================================================
 services:
-  # ------------------------------------------------------------
-  # init 容器：从 memory-server 镜像中提取 init.sql 到共享卷
-  # 避免 ./init/init.sql 不存在时被 Docker 创建为目录
-  # 需 root 写入 Docker 命名卷
-  # ------------------------------------------------------------
   init-db:
     image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
     container_name: memomcp-init-db
@@ -60,8 +53,8 @@ services:
     env_file:
       - .env
     environment:
-      # 容器间直连，走 memomcp-net 内部网络（推荐）
-      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
+      # 绕道宿主机：容器 → host-gateway → 宿主机:5432 → postgres 容器
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@host.docker.internal:5432/memomcp
     ports:
       - "8000:8000"
     depends_on:
@@ -74,6 +67,8 @@ services:
       retries: 3
       start_period: 15s
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - memomcp-net
 

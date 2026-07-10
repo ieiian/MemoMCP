@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MemoMCP — AI 长期记忆服务</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="/" class="brand">
+        <span class="brand-icon">M</span>
+        <span class="brand-text">MemoMCP</span>
+      </a>
+      <nav class="site-nav">
+        <a href="/" class="active">首页</a>
+        <a href="/admin">管理</a>
+        <a href="/docs">API 文档</a>
+        <a href="/redoc">ReDoc</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page-main">
+    <section class="hero">
+      <h1>AI 编码工具的长期记忆</h1>
+      <p>为 Cursor、Claude Code 等 MCP 客户端提供统一的记忆存储、检索与管理能力，支持向量混合搜索与工作区隔离。</p>
+      <div class="hero-actions">
+        <a href="/admin" class="btn btn-primary">打开管理台</a>
+        <a href="/docs" class="btn btn-secondary">浏览 API</a>
+      </div>
+    </section>
+
+    <div class="grid grid-3">
+      <div class="card feature-card">
+        <div class="icon">🧠</div>
+        <h4>记忆管理</h4>
+        <p>支持 12 种记忆类型，按工作区隔离，Hybrid Search 向量 + 关键词融合检索。</p>
+      </div>
+      <div class="card feature-card">
+        <div class="icon">🔌</div>
+        <h4>MCP 集成</h4>
+        <p>通过 FastMCP 暴露 10 个工具，Cursor / Claude Code 可直接调用存取记忆。</p>
+      </div>
+      <div class="card feature-card">
+        <div class="icon">📦</div>
+        <h4>备份迁移</h4>
+        <p>JSON 导入导出，方便在不同环境间迁移记忆数据，向量自动重新生成。</p>
+      </div>
+    </div>
+
+    <div class="card api-info">
+      <h3>快速入口</h3>
+      <table style="margin-top:12px">
+        <tbody>
+          <tr><td style="width:140px;color:var(--muted)">管理台</td><td><a href="/admin">/admin</a></td></tr>
+          <tr><td style="color:var(--muted)">Swagger UI</td><td><a href="/docs">/docs</a></td></tr>
+          <tr><td style="color:var(--muted)">ReDoc</td><td><a href="/redoc">/redoc</a></td></tr>
+          <tr><td style="color:var(--muted)">REST API</td><td><code>/api/v1</code></td></tr>
+          <tr><td style="color:var(--muted)">健康检查</td><td><code>/api/v1/health</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="site-footer">MemoMCP v0.1.0 — Universal long-term memory service</footer>
+</body>
+</html>

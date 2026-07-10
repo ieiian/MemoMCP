@@ -281,6 +281,34 @@ class MemoryRepository:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
+    async def list_all(
+        self,
+        workspace_id: str | None = None,
+    ) -> list[Memory]:
+        """导出用：获取全部记忆（可选按工作区过滤）。"""
+        stmt = select(Memory).order_by(Memory.created_at.asc())
+        if workspace_id is not None:
+            stmt = stmt.where(Memory.workspace_id == workspace_id)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def exists_by_content(
+        self,
+        workspace_id: str,
+        content: str,
+    ) -> bool:
+        """检查工作区内是否已存在相同内容的记忆。"""
+        stmt = (
+            select(func.count())
+            .select_from(Memory)
+            .where(
+                Memory.workspace_id == workspace_id,
+                Memory.content == content,
+            )
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one() > 0
+
     # ============================================================
     # 批量操作
     # ============================================================
