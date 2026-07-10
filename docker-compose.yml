@@ -3,6 +3,18 @@
 # 启动: docker compose up -d
 # ============================================================
 services:
+  # ------------------------------------------------------------
+  # init 容器：从 memory-server 镜像中提取 init.sql 到共享卷
+  # 避免 ./init/init.sql 不存在时被 Docker 创建为目录
+  # ------------------------------------------------------------
+  init-db:
+    image: ieiian/memomcp-server:latest
+    container_name: memomcp-init-db
+    volumes:
+      - db-init:/init-scripts
+    command: >
+      sh -c "cp /app/init.sql /init-scripts/init.sql && echo 'init.sql copied to shared volume'"
+
   postgres:
     image: pgvector/pgvector:pg17
     container_name: memomcp-postgres
@@ -14,7 +26,10 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - db-init:/docker-entrypoint-initdb.d:ro
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U memomcp -d memomcp"]
       interval: 10s
@@ -52,6 +67,8 @@ services:
 
 volumes:
   pgdata:
+    driver: local
+  db-init:
     driver: local
 
 networks:

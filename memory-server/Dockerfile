@@ -19,6 +19,9 @@ RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple \
 # 复制应用代码
 COPY app/ ./app/
 
+# 复制数据库初始化脚本（供 docker compose 部署时提取给 postgres 容器）
+COPY init.sql ./init.sql
+
 # 创建非 root 用户
 RUN useradd -m -u 1000 memomcp && chown -R memomcp:memomcp /app
 USER memomcp

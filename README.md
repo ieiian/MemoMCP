@@ -168,7 +168,7 @@ LOG_LEVEL=INFO
 | Gemini | text-embedding-004 | 768 | 768 |
 | Ollama | nomic-embed-text | 768 | 768 |
 
-> **注意**：更改维度需要修改 `init/init.sql` 中的 `vector(N)` 并重建数据库。
+> **注意**：更改维度需要修改 `memory-server/init.sql` 中的 `vector(N)` 并重建数据库。
 
 ---
 
@@ -472,11 +472,9 @@ MemoMCP/
 ├── ARCHITECTURE.md             # 架构设计文档
 ├── README.md                   # 本文档
 │
-├── init/
-│   └── init.sql                # pgvector 扩展 + 表 + 索引
-│
 └── memory-server/
     ├── Dockerfile
+    ├── init.sql                # pgvector 扩展 + 表 + 索引
     ├── requirements.txt
     └── app/
         ├── main.py             # 入口（REST API / MCP 双模式）

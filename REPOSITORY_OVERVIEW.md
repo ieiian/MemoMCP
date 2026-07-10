@@ -39,6 +39,7 @@ docker push ieiian/memomcp-server:latest
 - 暴露端口：8000（REST API）
 - 运行用户：非 root `memomcp`
 - 默认启动：`uvicorn app.main:app`
+- 内置 `init.sql`：镜像内 `/app/init.sql`，部署时自动提取供 PostgreSQL 初始化
 
 ---
 
@@ -78,11 +79,21 @@ LOG_LEVEL=INFO
 ```
 
 > `docker-compose.yml` 使用 `ieiian/memomcp-server:latest` 镜像，无需本地构建。
+> `init.sql` 已打入镜像，部署时由 init 容器自动提取到共享卷，无需用户手动创建。
 
 完整 `docker-compose.yml` 内容：
 
 ```yaml
 services:
+  # 从镜像中提取 init.sql 到共享卷，避免宿主机文件不存在被创建为目录
+  init-db:
+    image: ieiian/memomcp-server:latest
+    container_name: memomcp-init-db
+    volumes:
+      - db-init:/init-scripts
+    command: >
+      sh -c "cp /app/init.sql /init-scripts/init.sql && echo 'init.sql copied'"
+
   postgres:
     image: pgvector/pgvector:pg17
     container_name: memomcp-postgres
@@ -94,7 +105,10 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - db-init:/docker-entrypoint-initdb.d:ro
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U memomcp -d memomcp"]
       interval: 10s
@@ -126,6 +140,8 @@ services:
 
 volumes:
   pgdata:
+    driver: local
+  db-init:
     driver: local
 ```
 
@@ -177,7 +193,13 @@ LOG_LEVEL=INFO
 # 1. 创建网络
 docker network create memomcp-net
 
-# 2. 启动 PostgreSQL
+# 2. 从镜像提取 init.sql 到临时卷
+docker run --rm \
+  -v memomcp-init:/init-scripts \
+  ieiian/memomcp-server:latest \
+  sh -c "cp /app/init.sql /init-scripts/init.sql"
+
+# 3. 启动 PostgreSQL（使用共享卷中的 init.sql）
 docker run -d \
   --name memomcp-postgres \
   --network memomcp-net \
@@ -185,17 +207,17 @@ docker run -d \
   -e POSTGRES_PASSWORD=memomcp \
   -e POSTGRES_DB=memomcp \
   -v memomcp-pgdata:/var/lib/postgresql/data \
-  -v "$(pwd)/init/init.sql:/docker-entrypoint-initdb.d/init.sql:ro" \
+  -v memomcp-init:/docker-entrypoint-initdb.d:ro \
   -p 5432:5432 \
   --health-cmd "pg_isready -U memomcp -d memomcp" \
   --health-interval 10s --health-retries 5 \
   --restart unless-stopped \
   pgvector/pgvector:pg17
 
-# 3. 等待 PostgreSQL 就绪
+# 4. 等待 PostgreSQL 就绪
 until [ "$(docker inspect --format='{{.State.Health.Status}}' memomcp-postgres)" = "healthy" ]; do sleep 3; done
 
-# 4A. 启动 REST API 服务（管理 + 调试）
+# 5A. 启动 REST API 服务（管理 + 调试）
 docker run -d \
   --name memomcp-server \
   --network memomcp-net \
@@ -208,7 +230,7 @@ docker run -d \
   --restart unless-stopped \
   ieiian/memomcp-server:latest
 
-# 4B. 启动 MCP HTTP 服务（远程 MCP 连接，可同时运行）
+# 5B. 启动 MCP HTTP 服务（远程 MCP 连接，可同时运行）
 docker run -d \
   --name memomcp-mcp \
   --network memomcp-net \

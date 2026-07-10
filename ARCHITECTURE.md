@@ -118,11 +118,9 @@ MemoMCP/
 ├── README.md
 ├── ARCHITECTURE.md             # 本文档
 │
-├── init/
-│   └── init.sql                # pgvector 扩展 + 初始 schema
-│
 └── memory-server/
     ├── Dockerfile
+    ├── init.sql                # pgvector 扩展 + 初始 schema
     ├── requirements.txt
     └── app/
         ├── main.py             # FastMCP + FastAPI 启动入口
@@ -394,7 +392,7 @@ docker-compose.yml
 ├── postgres        # PostgreSQL 17 + pgvector
 │   ├─ volume: pgdata (持久化)
 │   ├─ healthcheck: pg_isready
-│   └─ init: init/init.sql
+│   └─ init: 镜像内置 init.sql → 共享卷 → postgres 初始化
 │
 └── memory-server   # FastMCP + FastAPI
     ├─ depends_on: postgres (healthy)
@@ -425,7 +423,7 @@ docker-compose.yml
 | 阶段 | 内容 | 交付物 |
 |------|------|--------|
 | **Phase 1** ✅ | 架构设计 | 本文档 |
-| Phase 2 | 数据库 + Docker | init.sql / Dockerfile / docker-compose.yml / models.py / database.py |
+| Phase 2 | 数据库 + Docker | memory-server/init.sql / Dockerfile / docker-compose.yml / models.py / database.py |
 | Phase 3 | 基础 Memory API | repository.py / schemas.py / service.py / api.py |
 | Phase 4 | MCP Server | tools.py / main.py |
 | Phase 5 | Embedding Provider | embedding/* + 向量搜索集成 |
