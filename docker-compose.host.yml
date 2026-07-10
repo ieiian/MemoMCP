@@ -2,17 +2,21 @@
 # MemoMCP Docker Compose — Host Network（真正 Host 模式）
 #
 # network_mode: host — 容器与宿主机共享网络栈，无端口映射、无 bridge
-# DATABASE_URL 使用 127.0.0.1，postgres 与 memory-server 通过宿主机回环地址通信
+# DATABASE_URL 使用 127.0.0.1，postgres / memory-server / memomcp-mcp 通过宿主机回环地址通信
+#
+# 本方案同时启动：
+#   - postgres      数据库
+#   - memory-server REST/Web 管理与 API（8000）
+#   - memomcp-mcp   MCP HTTP 服务（9000）
 #
 # 适用：Linux 服务器（Mac/Windows Docker Desktop 对 host 网络支持有限，请用默认 bridge）
 #
 # 启动: docker compose -f docker-compose.host.yml up -d
 #
-# 前置：宿主机 5432、8000 端口未被占用
+# 前置：宿主机 5432、8000、9000 端口未被占用
 # 自定义镜像: 在 .env 中设置 MEMOMCP_IMAGE=your-registry/memomcp-server:tag
 # ============================================================
 services:
-  # 从镜像提取 init.sql（init-db 无需 host 网络）
   init-db:
     image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
     container_name: memomcp-init-db
@@ -66,6 +70,20 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    restart: unless-stopped
+
+  memomcp-mcp:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-mcp
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@127.0.0.1:5432/memomcp
+    command: python -m app.main --mcp --transport http --port 9000
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

@@ -2,7 +2,12 @@
 # MemoMCP Docker Compose — 宿主机绕行模式（兼容方案）
 #
 # 注意：这不是 Docker 的 network_mode: host，仍是 bridge 网络。
-# memory-server 通过 host.docker.internal 经宿主机 5432 端口转发到 postgres。
+# memory-server / memomcp-mcp 通过 host.docker.internal 经宿主机 5432 端口转发到 postgres。
+#
+# 本方案同时启动：
+#   - postgres      数据库
+#   - memory-server REST/Web 管理与 API（8000）
+#   - memomcp-mcp   MCP HTTP 服务（9000）
 #
 # 适用：Colima / 部分 Mac Docker 环境下容器名互联异常时的兜底方案。
 # 常规部署请使用默认的 docker-compose.yml（容器间直连）。
@@ -53,7 +58,6 @@ services:
     env_file:
       - .env
     environment:
-      # 绕道宿主机：容器 → host-gateway → 宿主机:5432 → postgres 容器
       DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@host.docker.internal:5432/memomcp
     ports:
       - "8000:8000"
@@ -66,6 +70,25 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - memomcp-net
+
+  memomcp-mcp:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-mcp
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@host.docker.internal:5432/memomcp
+    command: python -m app.main --mcp --transport http --port 9000
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"

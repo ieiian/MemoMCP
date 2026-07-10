@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "memomcp": {
+    "memomcp-local": {
       "command": "python",
       "args": ["-m", "app.main", "--mcp"],
       "cwd": "/path/to/MemoMCP/memory-server",
@@ -9,6 +9,9 @@
         "AI_MEMORY_MANAGER": "false",
         "LOG_LEVEL": "INFO"
       }
+    },
+    "memomcp-remote": {
+      "url": "http://your-server:9000/mcp"
     }
   }
 }

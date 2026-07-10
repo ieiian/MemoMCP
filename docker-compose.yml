@@ -1,5 +1,5 @@
 # ============================================================
-# MemoMCP Docker Compose
+# MemoMCP Docker Compose — Bridge 容器直连（默认）
 # 启动: docker compose up -d
 #
 # 使用远程镜像（默认）:
@@ -9,14 +9,14 @@
 #   cd memory-server && docker build -t ieiian/memomcp-server:latest -f Dockerfile .
 #   cd .. && docker compose up -d
 #
+# 本方案同时启动：
+#   - postgres      数据库
+#   - memory-server REST/Web 管理与 API（8000）
+#   - memomcp-mcp   MCP HTTP 服务（9000）
+#
 # 自定义镜像: 在 .env 中设置 MEMOMCP_IMAGE=your-registry/memomcp-server:tag
 # ============================================================
 services:
-  # ------------------------------------------------------------
-  # init 容器：从 memory-server 镜像中提取 init.sql 到共享卷
-  # 避免 ./init/init.sql 不存在时被 Docker 创建为目录
-  # 需 root 写入 Docker 命名卷
-  # ------------------------------------------------------------
   init-db:
     image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
     container_name: memomcp-init-db
@@ -60,7 +60,6 @@ services:
     env_file:
       - .env
     environment:
-      # 容器间直连，走 memomcp-net 内部网络（推荐）
       DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
     ports:
       - "8000:8000"
@@ -73,6 +72,23 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    restart: unless-stopped
+    networks:
+      - memomcp-net
+
+  memomcp-mcp:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-mcp
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
+    command: python -m app.main --mcp --transport http --port 9000
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - memomcp-net
