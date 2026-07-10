@@ -64,6 +64,35 @@ cp .env.example .env
 
 > `init-db` 使用 `user: "0:0"` 写命名卷，避免 `Permission denied`。
 
+#### 数据持久化（命名卷）
+
+三套 Compose 均使用**固定名称**的 Docker 命名卷，PostgreSQL 数据写入宿主机卷，容器删除后数据仍保留：
+
+| 卷名（宿主机） | Compose 别名 | 挂载点 | 用途 |
+|----------------|--------------|--------|------|
+| `memomcp_pgdata` | `pgdata` | `/var/lib/postgresql/data` | 数据库文件（记忆、向量等） |
+| `memomcp_db_init` | `db-init` | `/docker-entrypoint-initdb.d` | `init.sql`（**仅空库首次**执行） |
+
+```bash
+# 停止并删除容器，数据卷保留（推荐日常重启）
+docker compose down
+
+# 再次启动，新容器自动挂载同一卷，数据完好
+docker compose up -d
+
+# 查看卷
+docker volume ls | grep memomcp
+
+# 彻底清空数据库（删除容器 + 命名卷，不可恢复）
+docker compose down -v
+```
+
+说明：
+
+- `docker compose down` **不会**删除 `memomcp_pgdata`，记忆数据安全保留。
+- `docker compose down -v` 会删除 `memomcp_pgdata` 与 `memomcp_db_init`，下次 `up` 相当于全新数据库。
+- 卷名使用 `name: memomcp_pgdata`，不随项目目录名变化，三套 compose 方案共用同一数据卷。
+
 | 方式 | 配置文件 | 网络 | 数据库连接 | MCP 地址 | 适用场景 |
 |------|----------|------|------------|----------|----------|
 | **Bridge 容器直连**（默认） | `docker-compose.yml` | `memomcp-net` bridge | `postgres:5432` | `http://<host>:9000/mcp` | 标准 Docker / 跨平台，推荐 |

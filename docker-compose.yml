@@ -15,6 +15,12 @@
 #   - memomcp-mcp   MCP HTTP 服务（9000）
 #
 # 自定义镜像: 在 .env 中设置 MEMOMCP_IMAGE=your-registry/memomcp-server:tag
+#
+# 数据持久化（命名卷）:
+#   pgdata  → PostgreSQL 数据目录 /var/lib/postgresql/data
+#   db-init → 首次初始化用的 init.sql（仅空库时执行）
+#   docker compose down        仅删除容器，数据卷保留
+#   docker compose down -v     删除容器并清除所有命名卷（数据库彻底清空）
 # ============================================================
 services:
   init-db:
@@ -95,8 +101,10 @@ services:
 
 volumes:
   pgdata:
+    name: memomcp_pgdata
     driver: local
   db-init:
+    name: memomcp_db_init
     driver: local
 
 networks:

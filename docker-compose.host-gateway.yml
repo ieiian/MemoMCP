@@ -13,6 +13,11 @@
 # 常规部署请使用默认的 docker-compose.yml（容器间直连）。
 #
 # 启动: docker compose -f docker-compose.host-gateway.yml up -d
+#
+# 数据持久化（命名卷）:
+#   pgdata  → PostgreSQL 数据目录
+#   docker compose down        仅删除容器，数据卷保留
+#   docker compose down -v     删除容器并清除所有命名卷（数据库彻底清空）
 # ============================================================
 services:
   init-db:
@@ -97,8 +102,10 @@ services:
 
 volumes:
   pgdata:
+    name: memomcp_pgdata
     driver: local
   db-init:
+    name: memomcp_db_init
     driver: local
 
 networks:
