@@ -81,7 +81,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone <repo-url> MemoMCP
+git clone https://github.com/ieiian/MemoMCP.git
 cd MemoMCP
 ```
 

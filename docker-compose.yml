@@ -22,30 +22,38 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+    networks:
+      - memomcp-net
 
   memory-server:
-    build:
-      context: ./memory-server
-      dockerfile: Dockerfile
+    image: ieiian/memomcp-server:latest
     container_name: memomcp-server
     env_file:
       - .env
     environment:
-      # 覆盖 DATABASE_URL 指向 compose 内部网络
-      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
+      # 通过宿主机端口连接 PostgreSQL（绕过 Docker 内部网络隔离）
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@host.docker.internal:5432/memomcp
     ports:
       - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')\" || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - memomcp-net
 
 volumes:
   pgdata:
     driver: local
+
+networks:
+  memomcp-net:
+    driver: bridge
