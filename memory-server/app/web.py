@@ -7,13 +7,16 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json
 import logging
+import time
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -91,6 +94,50 @@ _REDOC_DARK_THEME = {
         },
     },
 }
+
+
+# ============================================================
+# 管理台认证
+# ============================================================
+_SESSION_COOKIE = "memomcp_admin"
+_SESSION_MAX_AGE = 86400  # 24 小时
+
+
+def _generate_token() -> str:
+    """生成 HMAC 签名 token。"""
+    ts = int(time.time())
+    ts_hex = format(ts, "x")
+    msg = ts_hex.encode()
+    sig = hmac.new(settings.admin_password.encode(), msg, "sha256").hexdigest()
+    return f"{ts_hex}.{sig}"
+
+
+def _verify_token(token: str) -> bool:
+    """验证 HMAC 签名 token。"""
+    try:
+        ts_hex, sig = token.split(".", 1)
+        expected_sig = hmac.new(
+            settings.admin_password.encode(), ts_hex.encode(), "sha256"
+        ).hexdigest()
+        if not hmac.compare_digest(sig, expected_sig):
+            return False
+        ts = int(ts_hex, 16)
+        if time.time() - ts > _SESSION_MAX_AGE:
+            return False
+        return True
+    except (ValueError, KeyError):
+        return False
+
+
+async def require_admin(request: Request) -> None:
+    """依赖：验证管理台登录状态。"""
+    token = request.cookies.get(_SESSION_COOKIE)
+    if not token or not _verify_token(token):
+        raise HTTPException(status_code=401, detail="未登录或会话已过期")
+
+
+class LoginRequest(BaseModel):
+    password: str
 
 
 def _site_header(active: str, extra: str = "") -> str:
@@ -211,13 +258,50 @@ async def redoc_ui() -> HTMLResponse:
 
 
 # ============================================================
-# 管理 API
+# 管理台认证 API
+# ============================================================
+@router.post("/admin/login")
+async def admin_login(body: LoginRequest, response: Response) -> dict:
+    """管理台登录（仅密码）。"""
+    if not hmac.compare_digest(body.password, settings.admin_password):
+        raise HTTPException(status_code=401, detail="密码错误")
+    token = _generate_token()
+    response.set_cookie(
+        key=_SESSION_COOKIE,
+        value=token,
+        max_age=_SESSION_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+        path="/",
+    )
+    return {"ok": True}
+
+
+@router.post("/admin/logout")
+async def admin_logout(response: Response) -> dict:
+    """管理台登出。"""
+    response.delete_cookie(key=_SESSION_COOKIE, path="/")
+    return {"ok": True}
+
+
+@router.get("/admin/auth")
+async def admin_auth(request: Request) -> dict:
+    """检查登录状态。"""
+    token = request.cookies.get(_SESSION_COOKIE)
+    logged_in = bool(token and _verify_token(token))
+    return {"authenticated": logged_in}
+
+
+# ============================================================
+# 管理 API（需认证）
 # ============================================================
 @router.get("/admin/system", response_model=SystemStatus)
 async def system_status(
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> SystemStatus:
     """系统运行状态。"""
+    await require_admin(request)
     try:
         await db.execute(text("SELECT 1"))
         db_status = "ok"
@@ -245,15 +329,18 @@ async def system_status(
 
 @router.get("/admin/activity")
 async def get_activity(
+    request: Request,
     limit: int = Query(50, ge=1, le=200),
 ) -> dict:
     """获取最近调用活动。"""
+    await require_admin(request)
     return {"events": tracker.get_recent(limit)}
 
 
 @router.get("/admin/activity/stream")
-async def activity_stream() -> StreamingResponse:
+async def activity_stream(request: Request) -> StreamingResponse:
     """SSE 实时活动流。"""
+    await require_admin(request)
 
     async def generate():
         queue = await tracker.subscribe()

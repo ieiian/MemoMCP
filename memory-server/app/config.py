@@ -81,6 +81,12 @@ class Settings(BaseSettings):
         description="日志级别",
     )
 
+    # ===== 管理台 =====
+    admin_password: str = Field(
+        default="2026",
+        description="管理台访问密码",
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:
