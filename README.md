@@ -2,9 +2,11 @@
 
 > 基于 Model Context Protocol (MCP) 的通用长期记忆服务
 
-为 Cursor、VSCode、Claude Code、Cline、Roo Code 等 AI Coding 工具提供统一的长期记忆能力。
+为 Cursor、Claude Code、VS Code、Cline、Windsurf 等 AI Coding 工具提供统一的长期记忆能力。
 
 **它不是聊天机器人。它不是完整 AI Agent。它是一个 Memory Infrastructure。**
+
+**在线示例**：<https://memomcp.vtse.eu.org/>
 
 ---
 
@@ -16,27 +18,33 @@
 - [配置说明](#配置说明)
 - [MCP Client 配置](#mcp-client-配置)
   - [Cursor](#cursor-配置)
-  - [VSCode (Cline)](#vscode-cline-配置)
   - [Claude Code](#claude-code-配置)
+  - [Claude Desktop](#claude-desktop-配置)
+  - [VS Code](#vs-code-配置)
+  - [Windsurf](#windsurf-配置)
+  - [Cline](#cline-配置)
 - [运行模式](#运行模式)
   - [Passive Mode](#passive-mode默认模式)
   - [AI Memory Manager Mode](#ai-memory-manager-mode可选)
 - [Provider 切换](#provider-切换)
+- [Web 管理台](#web-管理台)
 - [REST API](#rest-api)
 - [MCP Tools](#mcp-tools)
 - [开发指南](#开发指南)
 - [项目结构](#项目结构)
+- [License](#license)
 
 ---
 
 ## 特性
 
-- **两种运行模式**：Passive（零 LLM）/ AI Memory Manager（自动治理）
-- **Provider 可插拔**：Embedding 与 LLM 各自抽象，支持 Gemini / OpenAI / 任意 OpenAI 兼容端点
-- **Hybrid Search**：向量搜索 + 全文检索 + RRF 融合排序
+- **两种运行模式**：Passive（零 LLM 调用）/ AI Memory Manager（自动治理）
+- **Provider 可插拔**：Embedding 与 LLM 各自抽象，支持 Gemini / OpenAI / 任意 OpenAI 兼容端点（DeepSeek / Ollama / vLLM / OpenRouter 等）
+- **Hybrid Search**：向量搜索（cosine + HNSW）+ 全文检索（ts_rank + GIN）+ RRF 融合排序
 - **Workspace 隔离**：不同项目/工作区的记忆互不污染
-- **MCP + REST 双协议**：MCP 供 AI 工具调用，REST 供调试管理
-- **生产就绪**：Docker Compose、健康检查、数据持久化、自动重启
+- **MCP + REST 双协议**：MCP 供 AI 工具调用，REST 供调试与管理
+- **Web 管理台**：内置暗色主题管理界面，支持活动日志 SSE 实时推送、Swagger UI / ReDoc 文档
+- **生产就绪**：Docker Compose 一键部署、健康检查、数据持久化、自动重启，提供三种网络模式
 
 ---
 
@@ -77,6 +85,7 @@
 
 - Docker + Docker Compose（或 Colima）
 - 1GB+ 可用内存
+- 一个 Embedding API Key（Gemini / OpenAI / 兼容服务其一）
 
 ### 1. 克隆项目
 
@@ -89,18 +98,21 @@ cd MemoMCP
 
 ```bash
 cp .env.example .env
-# 按需编辑 .env（至少配置数据库连接）
+# 至少填入一个 Embedding API Key
 ```
 
 ### 3. 启动服务
 
 ```bash
-docker compose up -d
+docker compose pull && docker compose up -d
 ```
 
-这会启动：
-- **PostgreSQL 17 + pgvector**（端口 5432，数据持久化）
-- **MemoMCP Server**（端口 8000，REST API）
+这会启动 4 个容器：
+
+- **memomcp-init-db**（一次性初始化数据库 schema）
+- **memomcp-postgres**（PostgreSQL 17 + pgvector，端口 5432）
+- **memomcp-server**（REST API + Web 管理台，端口 8000）
+- **memomcp-mcp**（MCP HTTP 服务，端口 9000）
 
 ### 4. 验证
 
@@ -109,25 +121,37 @@ curl http://localhost:8000/api/v1/health
 # {"status":"ok","database":"ok","version":"0.1.0"}
 ```
 
-### 5. 查看日志
+打开浏览器访问：
+
+- 管理台：<http://localhost:8000/admin>（密码见 `ADMIN_PASSWORD`）
+- API 文档（Swagger）：<http://localhost:8000/docs>
+- ReDoc 文档：<http://localhost:8000/redoc>
+- 部署指南：<http://localhost:8000/deploy>
+
+### 5. 常用命令
 
 ```bash
-docker compose logs -f memory-server
+docker compose logs -f              # 实时查看所有服务日志
+docker compose logs -f memory-server  # 仅 REST 服务
+docker compose restart              # 重启所有服务
+docker compose pull                 # 拉取最新镜像
+docker compose down                 # 停止并删除容器（保留数据）
+docker compose down -v              # 停止并删除容器与数据卷（⚠️ 清空数据库）
 ```
 
-### 6. 停止
+### 三种 Compose 网络模式
 
-```bash
-docker compose down
-# 停止并删除数据
-docker compose down -v
-```
+| 模式 | 配置文件 | DATABASE_URL | 适用场景 |
+|------|----------|--------------|----------|
+| Bridge（默认） | `docker-compose.yml` | `postgres:5432` | 通用，推荐首选 |
+| Host Gateway | `docker-compose.host-gateway.yml` | `host.docker.internal:5432` | Colima / Mac 容器互联异常 |
+| Host Network | `docker-compose.host.yml` | `127.0.0.1:5432` | Linux 服务器，无端口映射 |
 
 ---
 
 ## 配置说明
 
-所有配置通过 `.env` 文件管理（参考 `.env.example`）：
+所有配置通过 `.env` 文件管理（参考 [`.env.example`](.env.example)）：
 
 ```env
 # ===== 运行模式 =====
@@ -135,7 +159,7 @@ AI_MEMORY_MANAGER=false          # true 启用 AI 治理层
 
 # ===== LLM Provider（仅 AI 模式需要）=====
 LLM_PROVIDER=gemini              # gemini | openai | compatible
-LLM_MODEL=gemini-2.0-flash
+LLM_MODEL=gemini-3.1-flash-lite
 GEMINI_API_KEY=
 OPENAI_API_KEY=
 OPENAI_BASE_URL=                 # compatible 模式必填
@@ -157,6 +181,12 @@ REST_PORT=8000
 
 # ===== 日志 =====
 LOG_LEVEL=INFO
+
+# ===== 管理台 =====
+ADMIN_PASSWORD=2026              # /admin 页面访问密码
+
+# ===== Docker 镜像（可选）=====
+# MEMOMCP_IMAGE=ieiian/memomcp-server:latest
 ```
 
 ### 维度对照表
@@ -168,7 +198,7 @@ LOG_LEVEL=INFO
 | Gemini | text-embedding-004 | 768 | 768 |
 | Ollama | nomic-embed-text | 768 | 768 |
 
-> **注意**：更改维度需要修改 `memory-server/init.sql` 中的 `vector(N)` 并重建数据库。
+> **注意**：更改维度需要修改 `memory-server/init.sql` 中的 `vector(N)` 并重建数据库（`docker compose down -v && docker compose up -d`）。
 
 ---
 
@@ -176,7 +206,9 @@ LOG_LEVEL=INFO
 
 ### Cursor 配置
 
-编辑 `~/.cursor/mcp.json`（或项目根目录 `.cursor/mcp.json`）：
+编辑 `~/.cursor/mcp.json` 或项目根目录 `.cursor/mcp.json`：
+
+**本地 stdio 连接**：
 
 ```json
 {
@@ -187,9 +219,23 @@ LOG_LEVEL=INFO
       "cwd": "/path/to/MemoMCP/memory-server",
       "env": {
         "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
-        "AI_MEMORY_MANAGER": "false",
-        "LOG_LEVEL": "INFO"
+        "EMBEDDING_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "your-api-key",
+        "EMBEDDING_DIMENSION": "1536"
       }
+    }
+  }
+}
+```
+
+**远程 HTTP 连接**：
+
+```json
+{
+  "mcpServers": {
+    "memomcp": {
+      "url": "http://localhost:9000/mcp",
+      "transport": "http"
     }
   }
 }
@@ -197,28 +243,28 @@ LOG_LEVEL=INFO
 
 重启 Cursor 后，在 Settings → MCP 中确认 `memomcp` 已连接。
 
-### VSCode (Cline) 配置
-
-编辑 Cline 的 MCP 设置（`~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`）：
-
-```json
-{
-  "mcpServers": {
-    "memomcp": {
-      "command": "python",
-      "args": ["-m", "app.main", "--mcp"],
-      "cwd": "/path/to/MemoMCP/memory-server",
-      "env": {
-        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp"
-      }
-    }
-  }
-}
-```
-
 ### Claude Code 配置
 
-编辑 `~/.claude/claude_desktop_config.json`：
+```bash
+# 本地 stdio 连接
+claude mcp add memomcp \
+  -- python -m app.main --mcp \
+  -e DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp \
+  -e EMBEDDING_PROVIDER=gemini \
+  -e GEMINI_API_KEY=your-api-key
+
+# 远程 HTTP 连接
+claude mcp add memomcp \
+  --transport http \
+  --url http://localhost:9000/mcp
+
+# 查看已配置
+claude mcp list
+```
+
+### Claude Desktop 配置
+
+编辑配置文件（macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`）：
 
 ```json
 {
@@ -228,15 +274,84 @@ LOG_LEVEL=INFO
       "args": ["-m", "app.main", "--mcp"],
       "cwd": "/path/to/MemoMCP/memory-server",
       "env": {
-        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp"
+        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
+        "EMBEDDING_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "your-api-key",
+        "EMBEDDING_DIMENSION": "1536"
       }
     }
   }
 }
 ```
 
-> **提示**：`python` 需要在 PATH 中，且已安装所有依赖（`pip install -r requirements.txt`）。
-> 也可以直接用 venv 的 python 绝对路径。
+> 修改配置文件后需要重启 Claude Desktop 才能生效。
+
+### VS Code 配置
+
+编辑 `.vscode/mcp.json`：
+
+```json
+{
+  "servers": {
+    "memomcp": {
+      "command": "python",
+      "args": ["-m", "app.main", "--mcp"],
+      "cwd": "/path/to/MemoMCP/memory-server",
+      "env": {
+        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
+        "EMBEDDING_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+### Windsurf 配置
+
+编辑 `~/.codeium/windsurf/mcp_config.json`：
+
+```json
+{
+  "mcpServers": {
+    "memomcp": {
+      "command": "python",
+      "args": ["-m", "app.main", "--mcp"],
+      "cwd": "/path/to/MemoMCP/memory-server",
+      "env": {
+        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
+        "EMBEDDING_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+### Cline 配置
+
+编辑 `cline_mcp_settings.json`（macOS: `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`）：
+
+```json
+{
+  "mcpServers": {
+    "memomcp": {
+      "command": "python",
+      "args": ["-m", "app.main", "--mcp"],
+      "cwd": "/path/to/MemoMCP/memory-server",
+      "env": {
+        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
+        "EMBEDDING_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "your-api-key"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+> **提示**：`python` 需在 PATH 中且已安装依赖（`pip install -r memory-server/requirements.txt`）。也可直接用 venv 的 python 绝对路径。
 
 ---
 
@@ -250,9 +365,9 @@ LOG_LEVEL=INFO
 AI_MEMORY_MANAGER=false
 ```
 
-- AI Coding 工具（Cursor）决定存什么、改什么
-- MemoMCP 只负责：保存、生成 Embedding（如果配置了）、向量搜索、数据管理
-- 如果 Embedding Provider 也未配置，回退到关键词搜索
+- AI Coding 工具（如 Cursor）决定存什么、改什么
+- MemoMCP 只负责：保存、生成 Embedding、向量搜索、数据管理
+- 若 Embedding Provider 也未配置，回退到关键词搜索
 
 **使用示例**（在 Cursor 中对话）：
 
@@ -282,6 +397,7 @@ GEMINI_API_KEY=your_api_key
 | `merge_memory` | 合并多条相似记忆为一条 |
 
 同时 `save_memory` 自动增强：
+
 - 无标题时自动生成
 - 长内容自动生成摘要
 
@@ -308,7 +424,7 @@ OPENAI_BASE_URL=http://localhost:11434/v1
 EMBEDDING_MODEL=nomic-embed-text
 EMBEDDING_DIMENSION=768
 
-# vLLM / LocalAI
+# vLLM / LocalAI / OpenRouter
 EMBEDDING_PROVIDER=compatible
 OPENAI_BASE_URL=http://localhost:8080/v1
 EMBEDDING_MODEL=your-model
@@ -319,7 +435,7 @@ EMBEDDING_MODEL=your-model
 ```env
 # Gemini
 LLM_PROVIDER=gemini
-LLM_MODEL=gemini-2.0-flash
+LLM_MODEL=gemini-3.1-flash-lite
 GEMINI_API_KEY=your_key
 
 # OpenAI
@@ -341,9 +457,27 @@ OPENAI_BASE_URL=http://localhost:11434/v1
 
 ---
 
+## Web 管理台
+
+MemoMCP 内置暗色主题 Web 界面，无需额外部署：
+
+| 页面 | 路径 | 说明 |
+|------|------|------|
+| 首页 | `/` | 项目介绍与快速入口 |
+| 管理台 | `/admin` | 系统状态、记忆管理、活动日志（SSE 实时推送） |
+| 部署指南 | `/deploy` | 完整部署与 MCP 配置文档（含左侧目录导航） |
+| Swagger UI | `/docs` | 交互式 API 文档，支持在线调试 |
+| ReDoc | `/redoc` | 结构化 API 文档，适合阅读与分享 |
+
+所有页面共享统一的 1280px 居中布局、暗色配色与渐变背景。
+
+---
+
 ## REST API
 
-REST API 用于调试、管理和监控。默认端口 `8000`。
+REST API 用于调试、管理和监控。默认端口 `8000`，基础路径 `/api/v1`。
+
+### 系统接口
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -351,15 +485,28 @@ REST API 用于调试、管理和监控。默认端口 `8000`。
 | GET | `/api/v1/version` | 版本信息 |
 | GET | `/api/v1/stats` | 全局统计 |
 | GET | `/api/v1/stats/{workspace_id}` | 工作区统计 |
-| GET | `/api/v1/memories?workspace_id=` | 列表查询 |
-| POST | `/api/v1/memories` | 创建 |
+
+### Memory CRUD
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v1/memories?workspace_id=` | 列表查询（支持类型/标签/重要度过滤） |
+| POST | `/api/v1/memories` | 创建记忆 |
 | GET | `/api/v1/memories/{id}` | 获取单条 |
 | PATCH | `/api/v1/memories/{id}` | 更新 |
 | DELETE | `/api/v1/memories/{id}` | 删除 |
-| POST | `/api/v1/search` | 搜索 |
-| DELETE | `/api/v1/workspaces/{workspace_id}?confirm=true` | 清空工作区 |
 
-**Swagger 文档**：`http://localhost:8000/docs`
+### 搜索与批量操作
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/v1/search` | 搜索（Hybrid / 关键词） |
+| DELETE | `/api/v1/workspaces/{workspace_id}?confirm=true` | 清空工作区 |
+| GET | `/api/v1/export?workspace_id=` | 导出为 JSON |
+| POST | `/api/v1/import` | 批量导入 |
+
+**Swagger 文档**：<http://localhost:8000/docs>
+**ReDoc 文档**：<http://localhost:8000/redoc>
 
 ---
 
@@ -411,29 +558,28 @@ bug | solution | snippet | todo | api | command | experience
 ### 本地开发（不使用 Docker）
 
 ```bash
-# 1. 启动 PostgreSQL（仍用 Docker）
+# 1. 仅启动 PostgreSQL（仍用 Docker）
 docker compose up -d postgres
 
 # 2. 创建虚拟环境
-python -m venv venv
-source venv/bin/activate
+cd memory-server
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # 3. 安装依赖
-pip install -r memory-server/requirements.txt
+pip install -r requirements.txt
 
 # 4. 运行 REST API
-cd memory-server
-DATABASE_URL="postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp" \
-  python -m app.main
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-# 5. 运行 MCP Server（stdio）
-cd memory-server
-DATABASE_URL="postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp" \
-  python -m app.main --mcp
+# 5. 运行 MCP Server（stdio 模式）
+python -m app.main --mcp
 
-# 6. 运行 MCP Server（HTTP）
+# 6. 运行 MCP Server（HTTP 模式）
 python -m app.main --mcp --transport http --port 9000
 ```
+
+或直接使用项目脚本：`bash run_local.sh`
 
 ### 运行测试
 
@@ -450,14 +596,13 @@ DATABASE_URL="postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp" \
 | 组件 | 技术 |
 |------|------|
 | 语言 | Python 3.12 |
-| MCP | FastMCP 3.x |
+| MCP | FastMCP |
 | Web | FastAPI + Uvicorn |
 | ORM | SQLAlchemy 2.x (async) |
 | 数据库 | PostgreSQL 17 + pgvector |
 | 向量索引 | HNSW (pgvector) |
 | 全文检索 | PostgreSQL ts_rank + GIN |
 | 配置 | Pydantic Settings |
-| 迁移 | Alembic（预留） |
 | 部署 | Docker Compose |
 
 ---
@@ -466,48 +611,63 @@ DATABASE_URL="postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp" \
 
 ```
 MemoMCP/
-├── docker-compose.yml          # 容器编排
-├── .env.example                # 环境变量模板
-├── mcp-config.example.json     # MCP Client 配置模板
-├── ARCHITECTURE.md             # 架构设计文档
-├── README.md                   # 本文档
+├── docker-compose.yml              # Bridge 模式（默认）
+├── docker-compose.host-gateway.yml # Host Gateway 模式
+├── docker-compose.host.yml         # Host Network 模式（仅 Linux）
+├── .env.example                    # 环境变量模板
+├── mcp-config.example.json         # MCP Client 配置模板
+├── ARCHITECTURE.md                 # 架构设计文档
+├── run_local.sh                    # 本地运行脚本
+├── README.md                       # 本文档
 │
 └── memory-server/
     ├── Dockerfile
-    ├── init.sql                # pgvector 扩展 + 表 + 索引
+    ├── init.sql                    # pgvector 扩展 + 表 + 索引
     ├── requirements.txt
     └── app/
-        ├── main.py             # 入口（REST API / MCP 双模式）
-        ├── config.py           # Pydantic Settings
-        ├── database.py         # 异步引擎 + Session + NullPool
-        ├── models.py           # SQLAlchemy ORM (memories 表)
-        ├── schemas.py          # Pydantic 请求/响应模型
-        ├── repository.py       # Repository Pattern (CRUD + 搜索)
-        ├── service.py          # Service Layer (业务逻辑 + RRF)
-        ├── tools.py            # MCP Tools (10 个)
-        ├── api.py              # REST API 路由
+        ├── main.py                 # 入口（REST API / MCP 双模式）
+        ├── config.py               # Pydantic Settings
+        ├── database.py             # 异步引擎 + Session + NullPool
+        ├── models.py               # SQLAlchemy ORM (memories 表)
+        ├── schemas.py              # Pydantic 请求/响应模型
+        ├── repository.py           # Repository Pattern (CRUD + 搜索)
+        ├── service.py              # Service Layer (业务逻辑 + RRF)
+        ├── tools.py                # MCP Tools (10 个)
+        ├── api.py                  # REST API 路由
+        ├── web.py                  # Web 管理台与文档页路由
+        ├── activity.py             # 调用活动追踪 (SSE)
         │
-        ├── embedding/          # Embedding Provider
-        │   ├── base.py         # 抽象基类
+        ├── static/                 # 前端静态资源
+        │   ├── home.html           # 首页
+        │   ├── index.html          # 管理台
+        │   ├── deploy.html         # 部署指南
+        │   ├── theme.css           # 统一设计系统
+        │   ├── admin.css           # 管理台样式
+        │   ├── swagger.css         # Swagger UI 暗色主题
+        │   ├── redoc.css           # ReDoc 暗色主题
+        │   └── favicon.svg
+        │
+        ├── embedding/              # Embedding Provider
+        │   ├── base.py             # 抽象基类
         │   ├── gemini.py
         │   ├── openai.py
         │   ├── compatible.py
-        │   └── __init__.py     # 工厂函数
+        │   └── __init__.py         # 工厂函数
         │
-        ├── llm/                # LLM Provider
-        │   ├── base.py         # 抽象基类
+        ├── llm/                    # LLM Provider
+        │   ├── base.py             # 抽象基类
         │   ├── gemini.py
         │   ├── openai.py
         │   ├── compatible.py
-        │   └── __init__.py     # 工厂函数
+        │   └── __init__.py         # 工厂函数
         │
-        ├── memory_manager/     # AI Memory Manager
-        │   ├── manager.py      # MemoryManager
-        │   ├── prompts.py      # Prompt 模板
+        ├── memory_manager/         # AI Memory Manager
+        │   ├── manager.py          # MemoryManager
+        │   ├── prompts.py          # Prompt 模板
         │   └── __init__.py
         │
-        └── tests/              # 测试
-            ├── conftest.py     # pytest fixture
+        └── tests/                  # 测试
+            ├── conftest.py         # pytest fixture
             ├── test_repository.py
             ├── test_service.py
             └── test_tools.py
