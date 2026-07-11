@@ -25,6 +25,7 @@ class ActivityEvent:
     status: str  # "ok" | "error"
     duration_ms: float
     detail: str = ""
+    client_ip: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         """转为可序列化字典。"""
@@ -57,6 +58,7 @@ class ActivityTracker:
         status: str,
         duration_ms: float,
         detail: str = "",
+        client_ip: str = "",
     ) -> ActivityEvent:
         """记录一次调用并通知订阅者。"""
         event = ActivityEvent(
@@ -66,6 +68,7 @@ class ActivityTracker:
             status=status,
             duration_ms=round(duration_ms, 1),
             detail=detail,
+            client_ip=client_ip,
         )
         self._events.appendleft(event)
 
@@ -177,6 +180,7 @@ async def track_async(
     action: str,
     coro,
     detail: str = "",
+    client_ip: str = "",
 ):
     """异步调用包装，自动记录活动。"""
     tracker.begin(source)
@@ -191,5 +195,7 @@ async def track_async(
         raise
     finally:
         duration_ms = (time.perf_counter() - start) * 1000
-        tracker.record(source, action, status, duration_ms, result_detail)
+        tracker.record(
+            source, action, status, duration_ms, result_detail, client_ip
+        )
         tracker.end(source)

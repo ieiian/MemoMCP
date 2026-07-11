@@ -62,12 +62,42 @@ def _validate_uuid(memory_id: str) -> UUID:
         raise ValueError(f"Invalid UUID: '{memory_id}'")
 
 
+def _get_mcp_client_ip() -> str:
+    """尝试从 FastMCP 上下文获取客户端 IP。
+
+    stdio 模式下无法获取 IP，返回 "local"。
+    HTTP 模式下尝试从上下文中提取请求信息。
+    """
+    try:
+        from fastmcp.server.context import get_context
+
+        ctx = get_context()
+        # FastMCP HTTP 模式下，上下文可能包含请求信息
+        if hasattr(ctx, "request"):
+            request = ctx.request
+            if hasattr(request, "headers"):
+                forwarded_for = request.headers.get("x-forwarded-for")
+                if forwarded_for:
+                    return forwarded_for.split(",")[0].strip()
+                real_ip = request.headers.get("x-real-ip")
+                if real_ip:
+                    return real_ip.strip()
+            if hasattr(request, "client") and request.client:
+                return request.client.host
+    except Exception:
+        pass
+    return "local"
+
+
 def track_mcp(func):
     """MCP 工具调用追踪装饰器。"""
 
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):
-        return await track_async("mcp", func.__name__, func(*args, **kwargs))
+        client_ip = _get_mcp_client_ip()
+        return await track_async(
+            "mcp", func.__name__, func(*args, **kwargs), client_ip=client_ip
+        )
 
     return wrapper
 

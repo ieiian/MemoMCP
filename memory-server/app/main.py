@@ -80,11 +80,27 @@ UVICORN_LOG_CONFIG = {
 class ActivityMiddleware(BaseHTTPMiddleware):
     """记录 REST API 调用活动。"""
 
+    @staticmethod
+    def _get_client_ip(request: Request) -> str:
+        """从请求中提取客户端 IP 地址。
+
+        优先级：X-Forwarded-For > X-Real-IP > request.client.host
+        """
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        real_ip = request.headers.get("x-real-ip")
+        if real_ip:
+            return real_ip.strip()
+        if request.client:
+            return request.client.host
+        return "unknown"
+
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
         skip = (
             path.startswith("/admin/activity/stream")
-            or path in ("/admin", "/", "/redoc")
+            or path in ("/admin", "/", "/redoc", "/deploy")
             or path.startswith("/static")
             or path.startswith("/docs")
             or path.startswith("/openapi")
@@ -93,6 +109,7 @@ class ActivityMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         action = f"{request.method} {path}"
+        client_ip = self._get_client_ip(request)
         tracker.begin("rest")
         start = time.perf_counter()
         status = "ok"
@@ -109,7 +126,9 @@ class ActivityMiddleware(BaseHTTPMiddleware):
             raise
         finally:
             duration_ms = (time.perf_counter() - start) * 1000
-            tracker.record("rest", action, status, duration_ms, detail)
+            tracker.record(
+                "rest", action, status, duration_ms, detail, client_ip
+            )
             tracker.end("rest")
 
 

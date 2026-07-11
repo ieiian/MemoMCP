@@ -367,6 +367,18 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
   border-top: 1px solid var(--border);
   margin-top: 48px;
 }
+.site-footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.site-footer a:hover {
+  text-decoration: underline;
+}
+.site-nav a.nav-ext::after {
+  content: " ↗";
+  font-size: 0.75em;
+  opacity: 0.7;
+}
 
 /* ---- 文档页容器 ---- */
 .docs-wrap {

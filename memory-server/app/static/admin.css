@@ -59,6 +59,14 @@ textarea { resize: vertical; min-height: 80px; width: 100%; }
 .log-entry .src-mcp { color: var(--mcp); font-weight: 500; }
 .log-entry .src-rest { color: var(--rest); font-weight: 500; }
 .log-entry .err { color: var(--error); }
+.log-entry .log-ip {
+  color: var(--accent);
+  font-weight: 500;
+  background: var(--accent-soft, rgba(91, 141, 239, 0.1));
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
 
 .modal-overlay {
   display: none;

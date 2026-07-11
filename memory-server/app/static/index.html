@@ -37,6 +37,7 @@
       <nav class="site-nav">
         <a href="/">首页</a>
         <a href="/admin" class="active">管理</a>
+        <a href="/deploy">部署指南</a>
         <a href="/docs">API 文档</a>
         <a href="/redoc">ReDoc</a>
       </nav>
@@ -85,7 +86,7 @@
     <div class="panel" id="panel-activity">
       <div class="toolbar">
         <button class="btn-secondary btn-sm" id="clearLog">清空显示</button>
-        <span class="text-muted text-sm">实时 SSE 推送 MCP 与 REST 调用</span>
+        <span class="text-muted text-sm">实时 SSE 推送 MCP 与 REST 调用（含调用者 IP）</span>
       </div>
       <div class="log-box" id="logBox"></div>
     </div>
@@ -395,9 +396,11 @@
       div.className = 'log-entry';
       const srcClass = ev.source === 'mcp' ? 'src-mcp' : 'src-rest';
       const statusClass = ev.status === 'error' ? ' err' : '';
+      const ip = ev.client_ip || '-';
       div.innerHTML = `<span class="text-muted">${fmtTime(ev.timestamp)}</span> `
         + `<span class="${srcClass}">[${ev.source.toUpperCase()}]</span> `
         + `<span class="${statusClass}">${ev.action}</span> `
+        + `<span class="log-ip" title="调用者 IP">📍 ${ip}</span> `
         + `<span class="text-muted">${ev.duration_ms}ms</span>`
         + (ev.detail ? ` <span class="err">${ev.detail}</span>` : '');
       box.prepend(div);
@@ -594,5 +597,6 @@
       if (isLoggedIn) initApp();
     })();
   </script>
+  <footer class="site-footer">MemoMCP v0.1.0 — Universal long-term memory service · <a href="https://github.com/ieiian/MemoMCP" target="_blank" rel="noopener">GitHub</a></footer>
 </body>
 </html>

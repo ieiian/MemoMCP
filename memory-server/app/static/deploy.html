@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MemoMCP — 部署与使用指南</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/theme.css">
+<style>
+.dw{max-width:960px;margin:0 auto;padding:32px 24px 64px}
+.dh{margin-bottom:36px}.dh h1{font-size:1.8rem;font-weight:700;margin-bottom:8px}.dh p{color:var(--muted);font-size:.95rem}.dh p a{color:var(--accent);text-decoration:none}.dh p a:hover{text-decoration:underline}
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:36px}
+.toc h3{font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px}
+.toc ol{list-style:none;counter-reset:t;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:6px}
+.toc li{counter-increment:t;padding:4px 0}.toc li::before{content:counter(t)".";color:var(--accent);font-weight:600;margin-right:8px}
+.toc a{color:var(--text-secondary);font-size:.88rem}.toc a:hover{color:var(--accent)}
+.ds{margin-bottom:48px;scroll-margin-top:80px}
+.ds h2{font-size:1.3rem;font-weight:600;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--accent);display:inline-block}
+.ds h3{font-size:1.05rem;font-weight:600;margin:24px 0 12px;color:var(--accent)}
+.ds h4{font-size:.95rem;font-weight:600;margin:16px 0 8px;color:var(--text-secondary)}
+.ds p{color:var(--text-secondary);line-height:1.7;margin-bottom:12px}
+.ds p a{color:var(--accent);text-decoration:none}.ds p a:hover{text-decoration:underline}
+.ds ul,.ds ol{margin:8px 0 16px 20px;color:var(--text-secondary);line-height:1.8}
+.ds li{margin-bottom:4px}
+.ds code{font-family:var(--font-mono);font-size:.84rem;background:var(--bg-elevated);padding:2px 7px;border-radius:4px;border:1px solid var(--border);color:var(--accent)}
+.cb{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius);margin:12px 0 20px;overflow:hidden}
+.cbh{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+.cbh .lb{font-size:.78rem;color:var(--muted);font-family:var(--font-mono)}
+.cp{padding:3px 10px;font-size:.75rem;border-radius:4px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--muted);cursor:pointer;font-family:inherit;transition:color .15s,border-color .15s}
+.cp:hover{color:var(--accent);border-color:var(--accent)}.cp.copied{color:var(--ok);border-color:var(--ok)}
+.cb pre{padding:16px;overflow-x:auto;font-family:var(--font-mono);font-size:.82rem;line-height:1.6;color:var(--text)}
+.ib{background:var(--accent-soft);border:1px solid rgba(91,141,239,.3);border-left:3px solid var(--accent);border-radius:var(--radius-sm);padding:14px 18px;margin:16px 0}
+.ib p{margin:0;color:var(--text-secondary)}.ib strong{color:var(--accent)}
+.wb{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-left:3px solid var(--warn);border-radius:var(--radius-sm);padding:14px 18px;margin:16px 0}
+.wb p{margin:0;color:var(--text-secondary)}.wb strong{color:var(--warn)}
+.dt{width:100%;border-collapse:collapse;margin:12px 0 20px;font-size:.85rem}
+.dt th{background:var(--bg-elevated);color:var(--muted);font-weight:500;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.dt td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-secondary)}
+.dt tr:hover td{background:rgba(255,255,255,.02)}
+.sl{counter-reset:s;list-style:none;margin:16px 0;padding:0}
+.sl>li{counter-increment:s;position:relative;padding-left:40px;margin-bottom:20px}
+.sl>li::before{content:counter(s);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:.82rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.dt2{display:flex;gap:2px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.dt2b{padding:9px 16px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.85rem;font-weight:500;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:color .15s}
+.dt2b:hover{color:var(--text)}.dt2b.active{color:var(--accent);border-bottom-color:var(--accent)}
+.dtc{display:none}.dtc.active{display:block}
+@media(max-width:768px){.dw{padding:20px 16px 48px}.toc ol{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="header-inner">
+<a href="/" class="brand"><span class="brand-icon">M</span><span class="brand-text">MemoMCP</span></a>
+<nav class="site-nav">
+<a href="/">首页</a><a href="/admin">管理</a><a href="/deploy" class="active">部署指南</a><a href="/docs">API 文档</a><a href="/redoc">ReDoc</a>
+</nav></div></header>
+
+<main class="dw">
+<div class="dh"><h1>部署与使用指南</h1><p>本页涵盖 MemoMCP 的本地运行、Docker 部署（docker run / docker-compose）、以及各种常用编程工具的 MCP 配置方法。项目源码：<a href="https://github.com/ieiian/MemoMCP" target="_blank" rel="noopener">github.com/ieiian/MemoMCP</a></p></div>
+
+<nav class="toc"><h3>目录</h3><ol>
+<li><a href="#pre">前置条件</a></li>
+<li><a href="#local">本地运行</a></li>
+<li><a href="#dr">Docker run 部署</a></li>
+<li><a href="#dc">Docker Compose 部署</a></li>
+<li><a href="#env">环境变量配置</a></li>
+<li><a href="#cursor">Cursor MCP 配置</a></li>
+<li><a href="#cc">Claude Code MCP 配置</a></li>
+<li><a href="#cd">Claude Desktop MCP 配置</a></li>
+<li><a href="#vsc">VS Code MCP 配置</a></li>
+<li><a href="#ws">Windsurf MCP 配置</a></li>
+<li><a href="#cl">Cline MCP 配置</a></li>
+<li><a href="#verify">验证与测试</a></li>
+<li><a href="#faq">常见问题</a></li>
+</ol></nav>
+
+<section class="ds" id="pre">
+<h2>1. 前置条件</h2>
+<p>MemoMCP 依赖 PostgreSQL + pgvector 扩展来存储记忆和向量数据。</p>
+<table class="dt"><thead><tr><th>组件</th><th>要求</th><th>说明</th></tr></thead><tbody>
+<tr><td>PostgreSQL</td><td>≥ 15（推荐 17）</td><td>需安装 <code>pgvector</code> 扩展</td></tr>
+<tr><td>Python</td><td>≥ 3.12</td><td>本地运行需要；Docker 部署不需要</td></tr>
+<tr><td>Docker</td><td>≥ 24.0</td><td>Docker 部署需要</td></tr>
+<tr><td>Docker Compose</td><td>v2</td><td>Compose 部署需要</td></tr>
+<tr><td>Embedding API</td><td>OpenAI / Gemini / 兼容服务</td><td>用于生成记忆向量，必须配置其一</td></tr>
+</tbody></table>
+<div class="ib"><p><strong>提示：</strong>使用 Docker Compose 部署时，会自动拉取 <code>pgvector/pgvector:pg17</code> 镜像，无需手动安装数据库。</p></div>
+</section>
+
+<section class="ds" id="local">
+<h2>2. 本地运行</h2>
+<p>本地运行适合开发调试，需要自行准备 PostgreSQL 数据库。</p>
+<h3>2.1 克隆项目</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>git clone https://github.com/ieiian/MemoMCP.git
+cd MemoMCP</code></pre></div>
+<h3>2.2 准备数据库</h3>
+<p>使用 Docker 快速启动 PostgreSQL + pgvector：</p>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker run -d \
+  --name memomcp-postgres \
+  -e POSTGRES_USER=memomcp \
+  -e POSTGRES_PASSWORD=memomcp \
+  -e POSTGRES_DB=memomcp \
+  -p 5432:5432 \
+  -v memomcp_pgdata:/var/lib/postgresql/data \
+  -v $(pwd)/memory-server/init.sql:/docker-entrypoint-initdb.d/init.sql:ro \
+  pgvector/pgvector:pg17</code></pre></div>
+<div class="wb"><p><strong>注意：</strong><code>init.sql</code> 仅在数据库首次初始化时执行。如果数据卷已存在旧数据，需要先删除卷或手动执行 SQL。</p></div>
+<h3>2.3 安装 Python 依赖</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>cd memory-server
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt</code></pre></div>
+<h3>2.4 配置环境变量</h3>
+<p>在项目根目录创建 <code>.env</code> 文件（本地运行请将 <code>DATABASE_URL</code> 改为 <code>localhost</code>）：</p>
+<div class="cb"><div class="cbh"><span class="lb">.env（本地运行）</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code># ===== 运行模式 =====
+AI_MEMORY_MANAGER=false
+
+# ===== LLM Provider（仅 AI_MEMORY_MANAGER=true 时需要）=====
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-3.1-flash-lite
+GEMINI_API_KEY=your-gemini-api-key
+OPENAI_API_KEY=
+OPENAI_BASE_URL=
+
+# ===== Embedding Provider =====
+EMBEDDING_PROVIDER=gemini
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_DIMENSION=1536
+
+# ===== 数据库（本地运行用 localhost）=====
+DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp
+
+# ===== MCP 传输 =====
+MCP_TRANSPORT=stdio
+
+# ===== REST API =====
+REST_HOST=0.0.0.0
+REST_PORT=8000
+
+# ===== 日志 =====
+LOG_LEVEL=INFO
+
+# ===== 管理台 =====
+ADMIN_PASSWORD=your-admin-password</code></pre></div>
+<h3>2.5 启动 REST API 服务</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>cd memory-server
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload</code></pre></div>
+<p>或使用项目脚本：<code>bash run_local.sh</code></p>
+<p>启动后访问：管理台 <a href="http://localhost:8000/admin">/admin</a> | API 文档 <a href="http://localhost:8000/docs">/docs</a> | 健康检查 <code>GET /api/v1/health</code></p>
+<h3>2.6 启动 MCP 服务（远程模式）</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>cd memory-server
+python -m app.main --mcp --transport http --port 9000</code></pre></div>
+<p>MCP 端点：<code>http://localhost:9000/mcp</code></p>
+</section>
+
+<section class="ds" id="dr">
+<h2>3. Docker run 部署</h2>
+<p>使用 <code>docker run</code> 手动启动各组件，适合需要精细控制的场景。</p>
+<h3>3.1 创建 Docker 网络</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker network create memomcp-net</code></pre></div>
+<h3>3.2 启动 PostgreSQL</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker volume create memomcp_pgdata
+docker run -d \
+  --name memomcp-postgres --network memomcp-net \
+  -e POSTGRES_USER=memomcp -e POSTGRES_PASSWORD=memomcp -e POSTGRES_DB=memomcp \
+  -p 5432:5432 \
+  -v memomcp_pgdata:/var/lib/postgresql/data \
+  -v $(pwd)/memory-server/init.sql:/docker-entrypoint-initdb.d/init.sql:ro \
+  --health-cmd="pg_isready -U memomcp -d memomcp" \
+  --health-interval=10s --health-timeout=5s --health-retries=5 \
+  --restart unless-stopped \
+  pgvector/pgvector:pg17</code></pre></div>
+<h3>3.3 拉取或构建镜像</h3>
+<div class="cb"><div class="cbh"><span class="lb">拉取</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker pull ieiian/memomcp-server:latest</code></pre></div>
+<div class="cb"><div class="cbh"><span class="lb">构建</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>cd memory-server && docker build -t ieiian/memomcp-server:latest . && cd ..</code></pre></div>
+<h3>3.4 准备 .env 并启动 REST API</h3>
+<p>在项目根目录创建 <code>.env</code>（完整内容见<a href="#env">第 5 节</a>），然后启动 REST 服务：</p>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker run -d \
+  --name memomcp-server --network memomcp-net \
+  --env-file .env \
+  -e DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@memomcp-postgres:5432/memomcp \
+  -p 8000:8000 --restart unless-stopped \
+  ieiian/memomcp-server:latest</code></pre></div>
+<h3>3.5 启动 MCP HTTP 服务</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker run -d \
+  --name memomcp-mcp --network memomcp-net \
+  --env-file .env \
+  -e DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@memomcp-postgres:5432/memomcp \
+  -p 9000:9000 --restart unless-stopped \
+  ieiian/memomcp-server:latest \
+  python -m app.main --mcp --transport http --port 9000</code></pre></div>
+<div class="ib"><p><strong>提示：</strong>确保 PostgreSQL 健康后再启动 server 和 mcp。推荐使用 Docker Compose 自动管理依赖。</p></div>
+</section>
+
+<section class="ds" id="dc">
+<h2>4. Docker Compose 部署</h2>
+<p>项目提供三种 Compose 配置文件，均可在 <a href="https://github.com/ieiian/MemoMCP" target="_blank" rel="noopener">GitHub 仓库</a> 根目录找到。以下提供完整可复制的 <code>docker-compose.yml</code> 与 <code>.env</code> 内容。</p>
+<div class="ib"><p><strong>快速开始：</strong>克隆仓库 → 创建 <code>.env</code> 并填入 API Key → 复制下方对应 compose 文件 → 执行 <code>docker compose up -d</code></p></div>
+<div class="cb"><div class="cbh"><span class="lb">bash — 克隆项目</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>git clone https://github.com/ieiian/MemoMCP.git
+cd MemoMCP</code></pre></div>
+<div class="dt2">
+<button class="dt2b active" onclick="switchTab(this,'c-b')">Bridge（默认）</button>
+<button class="dt2b" onclick="switchTab(this,'c-g')">Host Gateway</button>
+<button class="dt2b" onclick="switchTab(this,'c-h')">Host Network</button>
+</div>
+<div class="dtc active" id="c-b">
+<h3>docker-compose.yml — Bridge 容器直连（推荐）</h3>
+<p>容器间通过 Docker 内部网络用服务名 <code>postgres</code> 直连，最通用稳定。将以下内容保存为项目根目录的 <code>docker-compose.yml</code>（仓库已自带，可直接使用）。</p>
+<div class="cb"><div class="cbh"><span class="lb">docker-compose.yml</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code># MemoMCP Docker Compose — Bridge 容器直连（默认）
+# 启动: docker compose pull && docker compose up -d
+services:
+  init-db:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-init-db
+    user: "0:0"
+    volumes:
+      - db-init:/init-scripts
+    command: >
+      sh -c "cp /app/init.sql /init-scripts/init.sql
+      && chmod 644 /init-scripts/init.sql
+      && echo 'init.sql copied to shared volume'"
+    restart: "no"
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: memomcp-postgres
+    environment:
+      POSTGRES_USER: memomcp
+      POSTGRES_PASSWORD: memomcp
+      POSTGRES_DB: memomcp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - db-init:/docker-entrypoint-initdb.d:ro
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U memomcp -d memomcp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - memomcp-net
+
+  memory-server:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-server
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - memomcp-net
+
+  memomcp-mcp:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-mcp
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
+    command: python -m app.main --mcp --transport http --port 9000
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - memomcp-net
+
+volumes:
+  pgdata:
+    name: memomcp_pgdata
+    driver: local
+  db-init:
+    name: memomcp_db_init
+    driver: local
+
+networks:
+  memomcp-net:
+    driver: bridge</code></pre></div>
+<h4>配套 .env 文件</h4>
+<p>在项目根目录创建 <code>.env</code>，<strong>必须</strong>填入 Embedding API Key。Compose 会通过 <code>environment</code> 覆盖 <code>DATABASE_URL</code> 为 <code>postgres</code> 服务名。</p>
+<div class="cb"><div class="cbh"><span class="lb">.env（Bridge 模式）</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code># ===== 运行模式 =====
+AI_MEMORY_MANAGER=false
+
+# ===== LLM Provider（仅 AI_MEMORY_MANAGER=true 时需要）=====
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-3.1-flash-lite
+GEMINI_API_KEY=your-gemini-api-key
+OPENAI_API_KEY=
+OPENAI_BASE_URL=
+
+# ===== Embedding Provider（必填其一 API Key）=====
+EMBEDDING_PROVIDER=gemini
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_DIMENSION=1536
+
+# ===== 数据库（Compose 会覆盖为 postgres 服务名）=====
+DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
+
+# ===== MCP / REST / 日志 =====
+MCP_TRANSPORT=stdio
+REST_HOST=0.0.0.0
+REST_PORT=8000
+LOG_LEVEL=INFO
+
+# ===== 管理台 =====
+ADMIN_PASSWORD=2026
+
+# ===== Docker 镜像（可选）=====
+# MEMOMCP_IMAGE=ieiian/memomcp-server:latest</code></pre></div>
+<ol class="sl">
+<li><strong>启动服务：</strong><div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker compose pull && docker compose up -d</code></pre></div></li>
+<li><strong>查看日志：</strong><div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker compose logs -f</code></pre></div></li>
+<li><strong>验证健康：</strong><div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>curl http://localhost:8000/api/v1/health</code></pre></div></li>
+</ol>
+<p>启动 4 个容器：<code>memomcp-init-db</code>（一次性初始化）、<code>memomcp-postgres</code>（5432）、<code>memomcp-server</code>（8000）、<code>memomcp-mcp</code>（9000）</p>
+</div>
+<div class="dtc" id="c-g">
+<h3>docker-compose.host-gateway.yml — 宿主机绕行</h3>
+<p>Bridge 网络，通过 <code>host.docker.internal</code> 经宿主机转发连接数据库。适用于 Colima / 部分 Mac Docker 环境下容器名互联异常时的兜底方案。</p>
+<div class="cb"><div class="cbh"><span class="lb">docker-compose.host-gateway.yml</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code># MemoMCP Docker Compose — 宿主机绕行模式
+# 启动: docker compose -f docker-compose.host-gateway.yml pull
+#       docker compose -f docker-compose.host-gateway.yml up -d
+services:
+  init-db:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-init-db
+    user: "0:0"
+    volumes:
+      - db-init:/init-scripts
+    command: >
+      sh -c "cp /app/init.sql /init-scripts/init.sql
+      && chmod 644 /init-scripts/init.sql
+      && echo 'init.sql copied to shared volume'"
+    restart: "no"
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: memomcp-postgres
+    environment:
+      POSTGRES_USER: memomcp
+      POSTGRES_PASSWORD: memomcp
+      POSTGRES_DB: memomcp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - db-init:/docker-entrypoint-initdb.d:ro
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U memomcp -d memomcp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - memomcp-net
+
+  memory-server:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-server
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@host.docker.internal:5432/memomcp
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - memomcp-net
+
+  memomcp-mcp:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-mcp
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@host.docker.internal:5432/memomcp
+    command: python -m app.main --mcp --transport http --port 9000
+    ports:
+      - "9000:9000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - memomcp-net
+
+volumes:
+  pgdata:
+    name: memomcp_pgdata
+    driver: local
+  db-init:
+    name: memomcp_db_init
+    driver: local
+
+networks:
+  memomcp-net:
+    driver: bridge</code></pre></div>
+<h4>配套 .env 文件</h4>
+<div class="cb"><div class="cbh"><span class="lb">.env（Host Gateway 模式）</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code># ===== 运行模式 =====
+AI_MEMORY_MANAGER=false
+
+# ===== LLM Provider =====
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-3.1-flash-lite
+GEMINI_API_KEY=your-gemini-api-key
+OPENAI_API_KEY=
+OPENAI_BASE_URL=
+
+# ===== Embedding Provider（必填其一 API Key）=====
+EMBEDDING_PROVIDER=gemini
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_DIMENSION=1536
+
+# ===== 数据库（Compose 会覆盖为 host.docker.internal）=====
+DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@host.docker.internal:5432/memomcp
+
+# ===== MCP / REST / 日志 =====
+MCP_TRANSPORT=stdio
+REST_HOST=0.0.0.0
+REST_PORT=8000
+LOG_LEVEL=INFO
+
+# ===== 管理台 =====
+ADMIN_PASSWORD=2026
+
+# ===== Docker 镜像（可选）=====
+# MEMOMCP_IMAGE=ieiian/memomcp-server:latest</code></pre></div>
+<ol class="sl">
+<li><strong>启动服务：</strong><div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker compose -f docker-compose.host-gateway.yml pull
+docker compose -f docker-compose.host-gateway.yml up -d</code></pre></div></li>
+<li><strong>查看日志：</strong><div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker compose -f docker-compose.host-gateway.yml logs -f</code></pre></div></li>
+</ol>
+<div class="ib"><p><strong>区别：</strong><code>DATABASE_URL</code> 使用 <code>host.docker.internal</code> 而非 <code>postgres</code>，通过宿主机 5432 端口转发到数据库容器。</p></div>
+</div>
+<div class="dtc" id="c-h">
+<h3>docker-compose.host.yml — Host Network（仅 Linux）</h3>
+<p>容器与宿主机共享网络栈，无端口映射。<code>DATABASE_URL</code> 用 <code>127.0.0.1</code>。Mac/Windows Docker Desktop 对 host 网络支持有限，<strong>仅适用 Linux 服务器</strong>。</p>
+<div class="cb"><div class="cbh"><span class="lb">docker-compose.host.yml</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code># MemoMCP Docker Compose — Host Network（真正 Host 模式）
+# 启动: docker compose -f docker-compose.host.yml pull
+#       docker compose -f docker-compose.host.yml up -d
+# 前置：宿主机 5432、8000、9000 端口未被占用
+services:
+  init-db:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-init-db
+    user: "0:0"
+    volumes:
+      - db-init:/init-scripts
+    command: >
+      sh -c "cp /app/init.sql /init-scripts/init.sql
+      && chmod 644 /init-scripts/init.sql
+      && echo 'init.sql copied to shared volume'"
+    restart: "no"
+
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: memomcp-postgres
+    network_mode: host
+    environment:
+      POSTGRES_USER: memomcp
+      POSTGRES_PASSWORD: memomcp
+      POSTGRES_DB: memomcp
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - db-init:/docker-entrypoint-initdb.d:ro
+    depends_on:
+      init-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U memomcp -d memomcp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  memory-server:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-server
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@127.0.0.1:5432/memomcp
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  memomcp-mcp:
+    image: ${MEMOMCP_IMAGE:-ieiian/memomcp-server:latest}
+    container_name: memomcp-mcp
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@127.0.0.1:5432/memomcp
+    command: python -m app.main --mcp --transport http --port 9000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    name: memomcp_pgdata
+    driver: local
+  db-init:
+    name: memomcp_db_init
+    driver: local</code></pre></div>
+<h4>配套 .env 文件</h4>
+<div class="cb"><div class="cbh"><span class="lb">.env（Host Network 模式）</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code># ===== 运行模式 =====
+AI_MEMORY_MANAGER=false
+
+# ===== LLM Provider =====
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-3.1-flash-lite
+GEMINI_API_KEY=your-gemini-api-key
+OPENAI_API_KEY=
+OPENAI_BASE_URL=
+
+# ===== Embedding Provider（必填其一 API Key）=====
+EMBEDDING_PROVIDER=gemini
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_DIMENSION=1536
+
+# ===== 数据库（Compose 会覆盖为 127.0.0.1）=====
+DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@127.0.0.1:5432/memomcp
+
+# ===== MCP / REST / 日志 =====
+MCP_TRANSPORT=stdio
+REST_HOST=0.0.0.0
+REST_PORT=8000
+LOG_LEVEL=INFO
+
+# ===== 管理台 =====
+ADMIN_PASSWORD=2026
+
+# ===== Docker 镜像（可选）=====
+# MEMOMCP_IMAGE=ieiian/memomcp-server:latest</code></pre></div>
+<ol class="sl">
+<li><strong>确保 5432、8000、9000 端口未被占用</strong></li>
+<li><strong>启动服务：</strong><div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker compose -f docker-compose.host.yml pull
+docker compose -f docker-compose.host.yml up -d</code></pre></div></li>
+<li><strong>验证健康：</strong><div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>curl http://127.0.0.1:8000/api/v1/health</code></pre></div></li>
+</ol>
+<div class="wb"><p><strong>警告：</strong>所有端口直接暴露在宿主机上，请确保防火墙规则正确。</p></div>
+</div>
+<h3>三种模式对比</h3>
+<table class="dt"><thead><tr><th>模式</th><th>配置文件</th><th>DATABASE_URL</th><th>适用场景</th></tr></thead><tbody>
+<tr><td>Bridge（默认）</td><td><code>docker-compose.yml</code></td><td><code>postgres:5432</code></td><td>通用，推荐首选</td></tr>
+<tr><td>Host Gateway</td><td><code>docker-compose.host-gateway.yml</code></td><td><code>host.docker.internal:5432</code></td><td>Colima / Mac 容器互联异常</td></tr>
+<tr><td>Host Network</td><td><code>docker-compose.host.yml</code></td><td><code>127.0.0.1:5432</code></td><td>Linux 服务器，无端口映射</td></tr>
+</tbody></table>
+<h3>常用 Compose 命令</h3>
+<table class="dt"><thead><tr><th>命令</th><th>说明</th></tr></thead><tbody>
+<tr><td><code>docker compose up -d</code></td><td>后台启动所有服务</td></tr>
+<tr><td><code>docker compose down</code></td><td>停止并删除容器（保留数据卷）</td></tr>
+<tr><td><code>docker compose down -v</code></td><td>停止并删除容器和数据卷（⚠️ 清空数据库）</td></tr>
+<tr><td><code>docker compose logs -f</code></td><td>实时查看日志</td></tr>
+<tr><td><code>docker compose restart</code></td><td>重启所有服务</td></tr>
+<tr><td><code>docker compose pull</code></td><td>拉取最新镜像</td></tr>
+<tr><td><code>docker compose ps</code></td><td>查看服务状态</td></tr>
+</tbody></table>
+<h3>本地构建后使用 Compose</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>cd memory-server && docker build -t ieiian/memomcp-server:latest . && cd ..
+docker compose up -d</code></pre></div>
+<h3>自定义镜像</h3>
+<p>在 <code>.env</code> 中设置：<code>MEMOMCP_IMAGE=your-registry/memomcp-server:your-tag</code></p>
+<h3>部署后访问</h3>
+<table class="dt"><thead><tr><th>服务</th><th>地址</th><th>说明</th></tr></thead><tbody>
+<tr><td>管理台</td><td><code>http://localhost:8000/admin</code></td><td>密码见 <code>ADMIN_PASSWORD</code></td></tr>
+<tr><td>API 文档</td><td><code>http://localhost:8000/docs</code></td><td>Swagger UI</td></tr>
+<tr><td>健康检查</td><td><code>http://localhost:8000/api/v1/health</code></td><td>REST 服务状态</td></tr>
+<tr><td>MCP HTTP</td><td><code>http://localhost:9000/mcp</code></td><td>远程 MCP 客户端连接</td></tr>
+</tbody></table>
+</section>
+
+<section class="ds" id="env">
+<h2>5. 环境变量配置</h2>
+<p>完整 <code>.env</code> 模板（与仓库 <a href="https://github.com/ieiian/MemoMCP/blob/main/.env.example" target="_blank" rel="noopener">.env.example</a> 一致），可直接复制后按需修改：</p>
+<div class="cb"><div class="cbh"><span class="lb">.env（完整模板）</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code># ============================================================
+# MemoMCP 环境变量配置
+# 复制为 .env 并按需修改
+# ============================================================
+
+# ===== 运行模式 =====
+# false = Passive Mode（默认，零 LLM 调用）
+# true  = AI Memory Manager Mode（启用自动治理层）
+AI_MEMORY_MANAGER=false
+
+# ===== LLM Provider（仅 AI_MEMORY_MANAGER=true 时需要）=====
+# 可选: gemini | openai | compatible
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-3.1-flash-lite
+
+# Gemini
+GEMINI_API_KEY=your-gemini-api-key
+
+# OpenAI 官方
+OPENAI_API_KEY=
+
+# OpenAI Compatible（OpenRouter / DeepSeek / Moonshot / MiniMax / Ollama / vLLM / LocalAI）
+# compatible 模式必填，例如: https://openrouter.ai/api/v1
+OPENAI_BASE_URL=
+
+# ===== Embedding Provider =====
+# 可选: gemini | openai | compatible
+EMBEDDING_PROVIDER=gemini
+EMBEDDING_MODEL=text-embedding-3-small
+# 向量维度（必须与 init.sql 一致；改维度需重建数据库）
+# OpenAI text-embedding-3-small = 1536
+# OpenAI text-embedding-3-large = 3072
+# Gemini embedding-001 / text-embedding-004 = 768
+EMBEDDING_DIMENSION=1536
+
+# ===== 数据库 =====
+# Compose Bridge（默认）: postgres
+# Compose 宿主机绕行: host.docker.internal  → docker-compose.host-gateway.yml
+# Compose Host Network: 127.0.0.1           → docker-compose.host.yml
+# 本地运行: localhost
+# 注意: docker-compose.yml 的 environment 会覆盖此项
+DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
+
+# ===== MCP 传输 =====
+# stdio = 标准输入输出（Cursor / Claude Code 本地连接）
+# sse   = Server-Sent Events（远程连接）
+# 通过 docker-compose 启动 memomcp-mcp 时，实际命令会显式使用 --transport http --port 9000
+MCP_TRANSPORT=stdio
+
+# ===== REST API =====
+REST_HOST=0.0.0.0
+REST_PORT=8000
+
+# ===== 日志 =====
+LOG_LEVEL=INFO
+
+# ===== 管理台 =====
+# 管理台访问密码（/admin 页面）
+ADMIN_PASSWORD=2026
+
+# ===== Docker 镜像（可选）=====
+# 默认使用 Docker Hub 远程镜像；本地构建后打同 tag 即可模拟远程部署
+# MEMOMCP_IMAGE=ieiian/memomcp-server:latest</code></pre></div>
+<h3>变量说明</h3>
+<table class="dt"><thead><tr><th>变量</th><th>默认值</th><th>说明</th></tr></thead><tbody>
+<tr><td><code>AI_MEMORY_MANAGER</code></td><td><code>false</code></td><td>是否启用 AI 自动治理层。<code>false</code> = Passive Mode</td></tr>
+<tr><td><code>LLM_PROVIDER</code></td><td><code>gemini</code></td><td>LLM 提供商：<code>gemini</code> / <code>openai</code> / <code>compatible</code></td></tr>
+<tr><td><code>LLM_MODEL</code></td><td><code>gemini-3.1-flash-lite</code></td><td>LLM 模型名</td></tr>
+<tr><td><code>GEMINI_API_KEY</code></td><td>—</td><td>Gemini API Key</td></tr>
+<tr><td><code>OPENAI_API_KEY</code></td><td>—</td><td>OpenAI API Key</td></tr>
+<tr><td><code>OPENAI_BASE_URL</code></td><td>—</td><td>兼容模式 API 地址（OpenRouter / DeepSeek / Ollama 等）</td></tr>
+<tr><td><code>EMBEDDING_PROVIDER</code></td><td><code>gemini</code></td><td>Embedding 提供商</td></tr>
+<tr><td><code>EMBEDDING_MODEL</code></td><td><code>text-embedding-3-small</code></td><td>Embedding 模型名</td></tr>
+<tr><td><code>EMBEDDING_DIMENSION</code></td><td><code>1536</code></td><td>向量维度（须与 init.sql 一致）</td></tr>
+<tr><td><code>DATABASE_URL</code></td><td>—</td><td>PostgreSQL 连接字符串</td></tr>
+<tr><td><code>MCP_TRANSPORT</code></td><td><code>stdio</code></td><td>MCP 传输方式：<code>stdio</code> / <code>sse</code></td></tr>
+<tr><td><code>ADMIN_PASSWORD</code></td><td><code>2026</code></td><td>管理台访问密码</td></tr>
+<tr><td><code>MEMOMCP_IMAGE</code></td><td><code>ieiian/memomcp-server:latest</code></td><td>Docker 镜像名</td></tr>
+</tbody></table>
+<div class="wb"><p><strong>重要：</strong><code>EMBEDDING_DIMENSION</code> 必须与 <code>init.sql</code> 一致。更改维度需删除数据库重新初始化。</p></div>
+</section>
+
+<section class="ds" id="cursor">
+<h2>6. Cursor MCP 配置</h2>
+<p>Cursor 原生支持 MCP。编辑 <code>.cursor/mcp.json</code> 或通过 <code>Settings → Cursor Settings → MCP</code> 添加。</p>
+<h3>6.1 本地 stdio 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">.cursor/mcp.json</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>{
+  "mcpServers": {
+    "memomcp": {
+      "command": "python",
+      "args": ["-m", "app.main", "--mcp"],
+      "cwd": "/path/to/MemoMCP/memory-server",
+      "env": {
+        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
+        "EMBEDDING_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "your-api-key",
+        "EMBEDDING_DIMENSION": "1536"
+      }
+    }
+  }
+}</code></pre></div>
+<h3>6.2 远程 HTTP/SSE 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">.cursor/mcp.json</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>{
+  "mcpServers": {
+    "memomcp": {
+      "url": "http://localhost:9000/mcp",
+      "transport": "http"
+    }
+  }
+}</code></pre></div>
+</section>
+
+<section class="ds" id="cc">
+<h2>7. Claude Code MCP 配置</h2>
+<p>Claude Code（CLI 工具）通过命令行添加 MCP Server。</p>
+<h3>7.1 添加 stdio 本地连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>claude mcp add memomcp \
+  -- python -m app.main --mcp \
+  -e DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp \
+  -e EMBEDDING_PROVIDER=gemini \
+  -e GEMINI_API_KEY=your-api-key</code></pre></div>
+<p>需要 <code>cd</code> 到 <code>memory-server</code> 目录下执行，或使用 <code>--cwd</code> 指定工作目录。</p>
+<h3>7.2 添加远程 HTTP 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>claude mcp add memomcp \
+  --transport http \
+  --url http://localhost:9000/mcp</code></pre></div>
+<h3>7.3 查看已配置的 MCP</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>claude mcp list</code></pre></div>
+</section>
+
+<section class="ds" id="cd">
+<h2>8. Claude Desktop MCP 配置</h2>
+<p>Claude Desktop App 通过配置文件添加 MCP Server。</p>
+<h4>配置文件位置</h4>
+<ul>
+<li><strong>macOS:</strong> <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></li>
+<li><strong>Windows:</strong> <code>%APPDATA%\Claude\claude_desktop_config.json</code></li>
+</ul>
+<h3>8.1 本地 stdio 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">claude_desktop_config.json</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>{
+  "mcpServers": {
+    "memomcp": {
+      "command": "python",
+      "args": ["-m", "app.main", "--mcp"],
+      "cwd": "/path/to/MemoMCP/memory-server",
+      "env": {
+        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
+        "EMBEDDING_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "your-api-key",
+        "EMBEDDING_DIMENSION": "1536"
+      }
+    }
+  }
+}</code></pre></div>
+<h3>8.2 远程 SSE 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">claude_desktop_config.json</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>{
+  "mcpServers": {
+    "memomcp": {
+      "type": "sse",
+      "url": "http://your-server:9000/mcp"
+    }
+  }
+}</code></pre></div>
+<div class="ib"><p><strong>提示：</strong>修改配置文件后需要重启 Claude Desktop 才能生效。</p></div>
+</section>
+
+<section class="ds" id="vsc">
+<h2>9. VS Code MCP 配置</h2>
+<p>VS Code 通过 GitHub Copilot 的 MCP 支持或 Cline 插件连接。编辑 <code>.vscode/mcp.json</code>：</p>
+<h3>9.1 本地 stdio 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">.vscode/mcp.json</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>{
+  "servers": {
+    "memomcp": {
+      "command": "python",
+      "args": ["-m", "app.main", "--mcp"],
+      "cwd": "/path/to/MemoMCP/memory-server",
+      "env": {
+        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
+        "EMBEDDING_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}</code></pre></div>
+<h3>9.2 远程 HTTP 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">.vscode/mcp.json</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>{
+  "servers": {
+    "memomcp": {
+      "type": "http",
+      "url": "http://localhost:9000/mcp"
+    }
+  }
+}</code></pre></div>
+</section>
+
+<section class="ds" id="ws">
+<h2>10. Windsurf MCP 配置</h2>
+<p>Windsurf（Codeium）编辑器支持 MCP。编辑 <code>~/.codeium/windsurf/mcp_config.json</code>：</p>
+<h3>10.1 本地 stdio 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">mcp_config.json</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>{
+  "mcpServers": {
+    "memomcp": {
+      "command": "python",
+      "args": ["-m", "app.main", "--mcp"],
+      "cwd": "/path/to/MemoMCP/memory-server",
+      "env": {
+        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
+        "EMBEDDING_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}</code></pre></div>
+<h3>10.2 远程 HTTP 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">mcp_config.json</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>{
+  "mcpServers": {
+    "memomcp": {
+      "type": "http",
+      "url": "http://localhost:9000/mcp"
+    }
+  }
+}</code></pre></div>
+</section>
+
+<section class="ds" id="cl">
+<h2>11. Cline MCP 配置</h2>
+<p>Cline（VS Code 插件）支持 MCP。通过 Cline 侧边栏的 MCP 图标添加，或编辑配置文件。</p>
+<h4>配置文件位置</h4>
+<ul>
+<li><strong>macOS:</strong> <code>~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json</code></li>
+<li><strong>Windows:</strong> <code>%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json</code></li>
+</ul>
+<h3>11.1 本地 stdio 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">cline_mcp_settings.json</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>{
+  "mcpServers": {
+    "memomcp": {
+      "command": "python",
+      "args": ["-m", "app.main", "--mcp"],
+      "cwd": "/path/to/MemoMCP/memory-server",
+      "env": {
+        "DATABASE_URL": "postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp",
+        "EMBEDDING_PROVIDER": "gemini",
+        "GEMINI_API_KEY": "your-api-key"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}</code></pre></div>
+<h3>11.2 远程 HTTP 连接</h3>
+<div class="cb"><div class="cbh"><span class="lb">cline_mcp_settings.json</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>{
+  "mcpServers": {
+    "memomcp": {
+      "type": "http",
+      "url": "http://localhost:9000/mcp",
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}</code></pre></div>
+</section>
+
+<section class="ds" id="verify">
+<h2>12. 验证与测试</h2>
+<h3>12.1 健康检查</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>curl http://localhost:8000/api/v1/health</code></pre></div>
+<p>预期返回：<code>{"status":"ok","database":"ok"}</code></p>
+<h3>12.2 MCP 工具测试</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>curl -X POST http://localhost:8000/api/v1/workspaces \
+  -H "Content-Type: application/json" \
+  -d '{"workspace_id":"test-ws"}'
+
+curl -X POST http://localhost:8000/api/v1/memories \
+  -H "Content-Type: application/json" \
+  -d '{"workspace_id":"test-ws","memory_type":"knowledge","content":"MemoMCP 部署测试","title":"测试记忆"}'</code></pre></div>
+<h3>12.3 检查活动日志</h3>
+<p>访问管理台 <a href="/admin">/admin</a> → 活动日志页面，可看到实时 SSE 推送的 MCP 与 REST 调用记录，包括调用者 IP 地址。</p>
+</section>
+
+<section class="ds" id="faq">
+<h2>13. 常见问题</h2>
+<h3>Q: 数据库连接失败？</h3>
+<p>检查 <code>DATABASE_URL</code>：本地用 <code>localhost</code>，Docker Bridge 用服务名 <code>postgres</code>，Host Network 用 <code>127.0.0.1</code>。</p>
+<h3>Q: MCP 客户端连接不上？</h3>
+<ul>
+<li>stdio 模式：确保 <code>cwd</code> 路径正确，Python 环境已安装依赖</li>
+<li>HTTP 模式：确保 MCP 服务已启动（端口 9000），防火墙未拦截</li>
+<li>检查日志：<code>docker compose logs -f memomcp-mcp</code></li>
+</ul>
+<h3>Q: 向量维度不匹配？</h3>
+<p><code>EMBEDDING_DIMENSION</code> 必须与 <code>init.sql</code> 一致（默认 1536）。修改需删除数据库卷重新初始化：<code>docker compose down -v && docker compose up -d</code></p>
+<h3>Q: 如何更新？</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>git pull origin main
+docker compose pull
+docker compose up -d</code></pre></div>
+<p>也可关注 <a href="https://github.com/ieiian/MemoMCP" target="_blank" rel="noopener">GitHub 仓库</a> 获取最新版本与 Release。</p>
+<h3>Q: 如何备份数据？</h3>
+<div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker exec memomcp-postgres pg_dump -U memomcp memomcp > backup.sql
+docker exec -i memomcp-postgres psql -U memomcp memomcp < backup.sql</code></pre></div>
+</section>
+
+</main>
+
+<footer class="site-footer">MemoMCP v0.1.0 — Universal long-term memory service · <a href="https://github.com/ieiian/MemoMCP" target="_blank" rel="noopener">GitHub</a></footer>
+
+<script>
+function copyCode(btn){
+  var pre=btn.closest('.cb').querySelector('pre');
+  var text=pre.textContent;
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent='已复制';
+    btn.classList.add('copied');
+    setTimeout(function(){btn.textContent='复制';btn.classList.remove('copied');},2000);
+  });
+}
+function switchTab(btn,id){
+  document.querySelectorAll('.dt2b').forEach(function(b){b.classList.remove('active');});
+  document.querySelectorAll('.dtc').forEach(function(c){c.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>

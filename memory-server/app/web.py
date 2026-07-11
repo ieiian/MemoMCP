@@ -36,6 +36,7 @@ _STATIC_DIR = Path(__file__).parent / "static"
 _NAV_ITEMS = (
     ("home", "/", "首页"),
     ("admin", "/admin", "管理"),
+    ("deploy", "/deploy", "部署指南"),
     ("docs", "/docs", "API 文档"),
     ("redoc", "/redoc", "ReDoc"),
 )
@@ -205,6 +206,12 @@ async def home_page() -> FileResponse:
 async def admin_page() -> FileResponse:
     """管理台入口。"""
     return FileResponse(_STATIC_DIR / "index.html")
+
+
+@router.get("/deploy", include_in_schema=False)
+async def deploy_page() -> FileResponse:
+    """部署指南页。"""
+    return FileResponse(_STATIC_DIR / "deploy.html")
 
 
 @router.get("/docs", include_in_schema=False)
