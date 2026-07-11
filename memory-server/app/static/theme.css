@@ -382,10 +382,9 @@ tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
 /* ---- 文档页容器 ---- */
 .docs-wrap {
-  max-width: 1460px;
+  max-width: var(--content-max);
   margin: 0 auto;
-  padding: 24px;
-  background: var(--bg);
+  padding: 28px 24px 48px;
   min-height: calc(100vh - var(--header-h));
 }
 

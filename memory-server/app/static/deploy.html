@@ -7,10 +7,12 @@
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/static/theme.css">
 <style>
-.dw{max-width:960px;margin:0 0 0 auto;padding:32px 24px 64px}
+.dw{max-width:var(--content-max);margin:0 auto;padding:32px 24px 64px}
 .dh{margin-bottom:36px}.dh h1{font-size:1.8rem;font-weight:700;margin-bottom:8px}.dh p{color:var(--muted);font-size:.95rem}.dh p a{color:var(--accent);text-decoration:none}.dh p a:hover{text-decoration:underline}
-/* ---- ReDoc 风格左侧导航 ---- */
-.sidenav{position:fixed;top:var(--header-h);left:0;bottom:0;width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:50}
+/* ---- 左侧导航 + 内容（sticky，随内容居中） ---- */
+.dw-body{display:grid;grid-template-columns:240px minmax(0,1fr);column-gap:32px;align-items:start}
+.sidenav{position:sticky;top:calc(var(--header-h) + 24px);width:auto;max-height:calc(100vh - var(--header-h) - 48px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;z-index:50}
+.dw-content{min-width:0}
 .snav-search{padding:12px 16px;border-bottom:1px solid var(--border);position:relative}
 .snav-search input{width:100%;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text);padding:8px 12px 8px 34px;border-radius:var(--radius-sm);font-size:.83rem;font-family:inherit;transition:border-color .15s,box-shadow .15s}
 .snav-search input::placeholder{color:var(--muted)}
@@ -29,7 +31,6 @@
 .snav-backtop{padding:10px 16px;border-top:1px solid var(--border)}
 .snav-backtop button{width:100%;padding:7px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--muted);font-size:.78rem;cursor:pointer;font-family:inherit;transition:color .15s,border-color .15s}
 .snav-backtop button:hover{color:var(--accent);border-color:var(--accent)}
-.site-footer{margin-left:260px}
 .snav-toggle{display:none;position:fixed;left:16px;bottom:20px;z-index:60;width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;border:none;align-items:center;justify-content:center;font-size:1.15rem;cursor:pointer;box-shadow:var(--shadow);transition:background .15s}
 .snav-toggle:hover{background:var(--accent-hover)}
 .snav-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:49}
@@ -64,11 +65,11 @@
 .dt2b:hover{color:var(--text)}.dt2b.active{color:var(--accent);border-bottom-color:var(--accent)}
 .dtc{display:none}.dtc.active{display:block}
 @media(max-width:1024px){
-  .sidenav{transform:translateX(-100%);transition:transform .25s ease}
+  .dw{margin:0 auto;padding:24px 16px 48px}
+  .dw-body{display:block}
+  .sidenav{position:fixed;top:var(--header-h);left:0;bottom:0;width:260px;max-height:none;border-radius:0;border-width:0;border-right-width:1px;transform:translateX(-100%);transition:transform .25s ease}
   .sidenav.open{transform:translateX(0)}
   .sidenav.open+.snav-overlay{display:block}
-  .dw{margin:0 auto;padding:24px 16px 48px}
-  .site-footer{margin-left:0}
   .snav-toggle{display:flex}
 }
 @media(max-width:768px){.dw{padding:20px 12px 48px}}
@@ -84,6 +85,7 @@
 <main class="dw">
 <div class="dh"><h1>部署与使用指南</h1><p>本页涵盖 MemoMCP 的本地运行、Docker 部署（docker run / docker-compose）、以及各种常用编程工具的 MCP 配置方法。项目源码：<a href="https://github.com/ieiian/MemoMCP" target="_blank" rel="noopener">github.com/ieiian/MemoMCP</a></p></div>
 
+<div class="dw-body">
 <aside class="sidenav" id="sideNav">
   <div class="snav-search">
     <span class="snav-search-icon">🔍</span>
@@ -117,7 +119,7 @@
 </aside>
 <div class="snav-overlay" id="snavOverlay"></div>
 <button class="snav-toggle" id="snavToggle" aria-label="切换目录导航">☰</button>
-
+<div class="dw-content">
 <section class="ds" id="pre">
 <h2>1. 前置条件</h2>
 <p>MemoMCP 依赖 PostgreSQL + pgvector 扩展来存储记忆和向量数据。</p>
@@ -966,6 +968,8 @@ docker compose up -d</code></pre></div>
 <div class="cb"><div class="cbh"><span class="lb">bash</span><button class="cp" onclick="copyCode(this)">复制</button></div><pre><code>docker exec memomcp-postgres pg_dump -U memomcp memomcp > backup.sql
 docker exec -i memomcp-postgres psql -U memomcp memomcp < backup.sql</code></pre></div>
 </section>
+</div><!-- /.dw-content -->
+</div><!-- /.dw-body -->
 
 </main>
 
