@@ -190,6 +190,8 @@ def run_mcp(transport: str = "stdio", port: int = 8000) -> None:
                 transport="http",
                 host="0.0.0.0",
                 port=port,
+                # fastmcp 4.x 默认关闭该防护，必须显式开启白名单才生效
+                host_origin_protection=True,
                 allowed_hosts=allowed_hosts,
             )
         else:

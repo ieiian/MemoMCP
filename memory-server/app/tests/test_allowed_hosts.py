@@ -100,6 +100,7 @@ def mcp_client(allowed_hosts: str):
 
     app = mcp.http_app(
         transport="http",
+        host_origin_protection=True,
         allowed_hosts=resolve_mcp_allowed_hosts(allowed_hosts),
     )
     # 与生产一致绑定 0.0.0.0（unspecified 地址不会自动加入白名单）
