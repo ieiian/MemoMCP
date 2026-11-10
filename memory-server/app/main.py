@@ -33,7 +33,7 @@ from starlette.requests import Request
 
 from app.activity import tracker
 from app.api import router
-from app.config import get_settings
+from app.config import get_settings, resolve_mcp_allowed_hosts
 from app.database import close_db, init_db
 from app.web import router as admin_router
 
@@ -180,7 +180,18 @@ def run_mcp(transport: str = "stdio", port: int = 8000) -> None:
     logger.info("Starting MemoMCP MCP server (%s)...", transport)
     try:
         if transport == "http":
-            mcp.run(transport="http", host="0.0.0.0", port=port)
+            allowed_hosts = resolve_mcp_allowed_hosts(settings.mcp_allowed_hosts)
+            logger.info("MCP Host whitelist: %s", ", ".join(allowed_hosts))
+            if "*" in allowed_hosts:
+                logger.warning(
+                    "MCP_ALLOWED_HOSTS 含 '*'：任意 Host 均被放行，仅限可信网络使用"
+                )
+            mcp.run(
+                transport="http",
+                host="0.0.0.0",
+                port=port,
+                allowed_hosts=allowed_hosts,
+            )
         else:
             mcp.run(transport="stdio")
     finally:

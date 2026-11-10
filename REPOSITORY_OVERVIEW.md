@@ -330,7 +330,8 @@ location /mcp {
 | `EMBEDDING_MODEL` | 否 | `text-embedding-3-small` | Embedding 模型 |
 | `EMBEDDING_DIMENSION` | 否 | `1536` | **必须与 init.sql 一致**，改维度需重建库 |
 | `DATABASE_URL` | **是** | - | 异步 PostgreSQL 连接串（Compose 会覆盖） |
-| `MCP_TRANSPORT` | 否 | `stdio` | `stdio` / `sse` |
+| `MCP_TRANSPORT` | 否 | `stdio` | `stdio` / `http` |
+| `MCP_ALLOWED_HOSTS` | 否 | `lan` | MCP HTTP Host 白名单：`lan`(全部私网) / IP / CIDR / 通配符，逗号分隔 |
 | `REST_HOST` / `REST_PORT` | 否 | `0.0.0.0` / `8000` | REST 监听地址 |
 | `LOG_LEVEL` | 否 | `INFO` | `DEBUG` / `INFO` / `WARNING` / `ERROR` |
 | `MEMOMCP_IMAGE` | 否 | `ieiian/memomcp-server:latest` | Compose 镜像 tag |
@@ -385,8 +386,10 @@ DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
 
 # ===== MCP 传输 =====
 # stdio = 标准输入输出（Cursor / Claude Code 本地连接）
-# sse   = Server-Sent Events（远程连接）
+# http  = Streamable HTTP（远程连接，端点 /mcp）
 MCP_TRANSPORT=stdio
+# Host 白名单：lan(全部私网,默认) / 单IP / CIDR / 通配符，逗号分隔；localhost 恒放行
+MCP_ALLOWED_HOSTS=lan
 
 # ===== REST API =====
 REST_HOST=0.0.0.0

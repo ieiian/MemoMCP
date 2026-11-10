@@ -173,7 +173,8 @@ EMBEDDING_DIMENSION=1536         # 必须与 init.sql 一致
 DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
 
 # ===== MCP 传输 =====
-MCP_TRANSPORT=stdio              # stdio | sse
+MCP_TRANSPORT=stdio              # stdio | http（远程端点 /mcp）
+MCP_ALLOWED_HOSTS=lan            # Host 白名单：lan(全部私网) | IP | CIDR | 通配符，逗号分隔
 
 # ===== REST API =====
 REST_HOST=0.0.0.0

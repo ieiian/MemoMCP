@@ -85,6 +85,8 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@127.0.0.1:5432/memomcp
+      # MCP Host 白名单：lan(默认,全部私网) / 单IP / CIDR / 通配符，逗号分隔，可在 .env 覆盖
+      MCP_ALLOWED_HOSTS: "${MCP_ALLOWED_HOSTS:-lan}"
     command: python -m app.main --mcp --transport http --port 9000
     depends_on:
       postgres:

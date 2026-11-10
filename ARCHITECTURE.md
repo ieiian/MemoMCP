@@ -377,7 +377,8 @@ EMBEDDING_DIMENSION=1536
 DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
 
 # ===== 服务 =====
-MCP_TRANSPORT=stdio              # stdio | sse
+MCP_TRANSPORT=stdio              # stdio | http（远程端点 /mcp）
+MCP_ALLOWED_HOSTS=lan            # Host 白名单：lan(全部私网) | IP | CIDR | 通配符，逗号分隔
 REST_HOST=0.0.0.0
 REST_PORT=8000
 LOG_LEVEL=INFO

@@ -178,6 +178,8 @@ DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@localhost:5432/memomcp
 
 # ===== MCP 传输 =====
 MCP_TRANSPORT=stdio
+# Host 白名单：lan(全部私网,默认) / 单IP / CIDR / 通配符，逗号分隔
+MCP_ALLOWED_HOSTS=lan
 
 # ===== REST API =====
 REST_HOST=0.0.0.0
@@ -364,6 +366,7 @@ DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
 
 # ===== MCP / REST / 日志 =====
 MCP_TRANSPORT=stdio
+MCP_ALLOWED_HOSTS=lan
 REST_HOST=0.0.0.0
 REST_PORT=8000
 LOG_LEVEL=INFO
@@ -499,6 +502,7 @@ DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@host.docker.internal:5432/memo
 
 # ===== MCP / REST / 日志 =====
 MCP_TRANSPORT=stdio
+MCP_ALLOWED_HOSTS=lan
 REST_HOST=0.0.0.0
 REST_PORT=8000
 LOG_LEVEL=INFO
@@ -618,6 +622,7 @@ DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@127.0.0.1:5432/memomcp
 
 # ===== MCP / REST / 日志 =====
 MCP_TRANSPORT=stdio
+MCP_ALLOWED_HOSTS=lan
 REST_HOST=0.0.0.0
 REST_PORT=8000
 LOG_LEVEL=INFO
@@ -713,9 +718,11 @@ DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@postgres:5432/memomcp
 
 # ===== MCP 传输 =====
 # stdio = 标准输入输出（Cursor / Claude Code 本地连接）
-# sse   = Server-Sent Events（远程连接）
+# http  = Streamable HTTP（远程连接，端点 /mcp）
 # 通过 docker-compose 启动 memomcp-mcp 时，实际命令会显式使用 --transport http --port 9000
 MCP_TRANSPORT=stdio
+# Host 白名单：lan(全部私网,默认) / 单IP / CIDR / 通配符，逗号分隔；localhost 恒放行
+MCP_ALLOWED_HOSTS=lan
 
 # ===== REST API =====
 REST_HOST=0.0.0.0
@@ -743,7 +750,8 @@ ADMIN_PASSWORD=2026
 <tr><td><code>EMBEDDING_MODEL</code></td><td><code>text-embedding-3-small</code></td><td>Embedding 模型名</td></tr>
 <tr><td><code>EMBEDDING_DIMENSION</code></td><td><code>1536</code></td><td>向量维度（须与 init.sql 一致）</td></tr>
 <tr><td><code>DATABASE_URL</code></td><td>—</td><td>PostgreSQL 连接字符串</td></tr>
-<tr><td><code>MCP_TRANSPORT</code></td><td><code>stdio</code></td><td>MCP 传输方式：<code>stdio</code> / <code>sse</code></td></tr>
+<tr><td><code>MCP_TRANSPORT</code></td><td><code>stdio</code></td><td>MCP 传输方式：<code>stdio</code> / <code>http</code></td></tr>
+<tr><td><code>MCP_ALLOWED_HOSTS</code></td><td><code>lan</code></td><td>MCP HTTP Host 白名单：<code>lan</code>(全部私网) / 单IP / CIDR / 通配符，逗号分隔</td></tr>
 <tr><td><code>ADMIN_PASSWORD</code></td><td><code>2026</code></td><td>管理台访问密码</td></tr>
 <tr><td><code>MEMOMCP_IMAGE</code></td><td><code>ieiian/memomcp-server:latest</code></td><td>Docker 镜像名</td></tr>
 </tbody></table>
