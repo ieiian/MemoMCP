@@ -26,7 +26,9 @@ COPY init.sql ./init.sql
 RUN useradd -m -u 1000 memomcp && chown -R memomcp:memomcp /app
 USER memomcp
 
-# 健康检查
+# 健康检查（默认镜像跑的 REST API 在 8000 端口）
+# 注意：以 --mcp --transport http --port 9000 启动的 MCP 容器不含 REST API，
+#       必须在其 docker-compose 服务中用对应的 healthcheck 覆盖此项，否则会一直 unhealthy。
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')" || exit 1
 

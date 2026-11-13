@@ -132,6 +132,9 @@ docker compose logs -f memomcp-mcp
     command: python -m app.main --mcp --transport http --port 9000
     ports:
       - "9000:9000"
+    healthcheck:
+      # 只跑 MCP HTTP（9000），须覆盖镜像内置的 8000 REST 健康检查
+      test: ["CMD-SHELL", "python -c \"import socket; socket.create_connection(('127.0.0.1', 9000), timeout=5)\""]
 ```
 
 ---
@@ -162,6 +165,9 @@ docker compose -f docker-compose.host-gateway.yml logs -f memomcp-mcp
     command: python -m app.main --mcp --transport http --port 9000
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      # 只跑 MCP HTTP（9000），须覆盖镜像内置的 8000 REST 健康检查
+      test: ["CMD-SHELL", "python -c \"import socket; socket.create_connection(('127.0.0.1', 9000), timeout=5)\""]
 ```
 
 说明：
@@ -197,6 +203,9 @@ docker compose -f docker-compose.host.yml logs -f memomcp-mcp
     environment:
       DATABASE_URL: postgresql+asyncpg://memomcp:memomcp@127.0.0.1:5432/memomcp
     command: python -m app.main --mcp --transport http --port 9000
+    healthcheck:
+      # 只跑 MCP HTTP（9000），须覆盖镜像内置的 8000 REST 健康检查
+      test: ["CMD-SHELL", "python -c \"import socket; socket.create_connection(('127.0.0.1', 9000), timeout=5)\""]
 ```
 
 限制：
@@ -227,7 +236,7 @@ until [ "$(docker inspect --format='{{.State.Health.Status}}' memomcp-postgres)"
 docker run -d --name memomcp-server --network memomcp-net   --env-file .env   -e DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@memomcp-postgres:5432/memomcp   -p 8000:8000   --restart unless-stopped   ieiian/memomcp-server:latest
 
 # MCP HTTP
-docker run -d --name memomcp-mcp --network memomcp-net   --env-file .env   -e DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@memomcp-postgres:5432/memomcp   -p 9000:9000   --restart unless-stopped   ieiian/memomcp-server:latest   python -m app.main --mcp --transport http --port 9000
+docker run -d --name memomcp-mcp --network memomcp-net   --env-file .env   -e DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@memomcp-postgres:5432/memomcp   -p 9000:9000   --health-cmd "python -c \"import socket; socket.create_connection(('127.0.0.1', 9000), timeout=5)\""   --health-interval 30s --health-timeout 5s --health-retries 3 --health-start-period 15s   --restart unless-stopped   ieiian/memomcp-server:latest   python -m app.main --mcp --transport http --port 9000
 ```
 
 ---
@@ -484,6 +493,7 @@ asyncio.run(t())
 | Host Network 端口冲突 | 宿主机 5432/8000 已被占用 | 释放端口或改用 Bridge 模式 |
 | DB 连接失败（Host Network） | 非 Linux 环境 | Mac/Windows 请用默认 `docker-compose.yml` |
 | MCP 连接失败 | cwd 非绝对路径 / DB 未运行 | 检查路径与数据库状态 |
+| `memomcp-mcp` 显示 unhealthy | 该容器只跑 MCP HTTP（9000），镜像内置健康检查却指向 8000 的 REST 接口 | compose 中已为其覆盖为 TCP 9000 检查；`docker compose up -d` 重建容器 |
 | embedding 失败 | Key 无效 / 维度不匹配 | 查日志 `docker compose logs memory-server` |
 | 中文搜索效果差 | 全文检索偏英文 | 配置 Embedding 启用向量搜索 |
 | Colima 构建超时 | 内存不足 | `colima start --cpu 4 --memory 8` |

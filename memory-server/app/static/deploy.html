@@ -235,6 +235,8 @@ docker run -d \
   --env-file .env \
   -e DATABASE_URL=postgresql+asyncpg://memomcp:memomcp@memomcp-postgres:5432/memomcp \
   -p 9000:9000 --restart unless-stopped \
+  --health-cmd "python -c \"import socket; socket.create_connection(('127.0.0.1', 9000), timeout=5)\"" \
+  --health-interval 30s --health-timeout 5s --health-retries 3 --health-start-period 15s \
   ieiian/memomcp-server:latest \
   python -m app.main --mcp --transport http --port 9000</code></pre></div>
 <div class="ib"><p><strong>提示：</strong>确保 PostgreSQL 健康后再启动 server 和 mcp。推荐使用 Docker Compose 自动管理依赖。</p></div>
@@ -329,6 +331,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      # 只跑 MCP HTTP（9000），须覆盖镜像内置的 8000 REST 健康检查
+      test: ["CMD-SHELL", "python -c \"import socket; socket.create_connection(('127.0.0.1', 9000), timeout=5)\""]
     restart: unless-stopped
     networks:
       - memomcp-net
@@ -464,6 +469,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      # 只跑 MCP HTTP（9000），须覆盖镜像内置的 8000 REST 健康检查
+      test: ["CMD-SHELL", "python -c \"import socket; socket.create_connection(('127.0.0.1', 9000), timeout=5)\""]
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -592,6 +600,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      # 只跑 MCP HTTP（9000），须覆盖镜像内置的 8000 REST 健康检查
+      test: ["CMD-SHELL", "python -c \"import socket; socket.create_connection(('127.0.0.1', 9000), timeout=5)\""]
     restart: unless-stopped
 
 volumes:
@@ -965,6 +976,8 @@ curl -X POST http://localhost:8000/api/v1/memories \
 <li>HTTP 模式：确保 MCP 服务已启动（端口 9000），防火墙未拦截</li>
 <li>检查日志：<code>docker compose logs -f memomcp-mcp</code></li>
 </ul>
+<h3>Q: <code>memomcp-mcp</code> 显示 unhealthy？</h3>
+<p>该容器只运行 MCP HTTP（端口 9000），而镜像内置的健康检查指向 8000 的 REST 接口（<code>/api/v1/health</code>），必然失败。<code>docker-compose.yml</code> 已为它覆盖为 TCP 9000 检查，执行 <code>docker compose up -d</code> 重建容器即可变为 healthy。此现象与 MCP 服务本身是否可用无关。</p>
 <h3>Q: 向量维度不匹配？</h3>
 <p><code>EMBEDDING_DIMENSION</code> 必须与 <code>init.sql</code> 一致（默认 1536）。修改需删除数据库卷重新初始化：<code>docker compose down -v && docker compose up -d</code></p>
 <h3>Q: 如何更新？</h3>

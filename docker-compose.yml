@@ -97,6 +97,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      # 本容器只跑 MCP HTTP（9000），没有 REST（8000）；
+      # 必须覆盖镜像内置的 8000 健康检查，否则会一直显示 unhealthy。
+      # 用一个纯 stdlib 的 TCP 连接检查（镜像内无 curl/ss/netstat）。
+      test: ["CMD-SHELL", "python -c \"import socket; socket.create_connection(('127.0.0.1', 9000), timeout=5)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
     networks:
       - memomcp-net

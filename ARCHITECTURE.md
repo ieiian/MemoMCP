@@ -395,11 +395,17 @@ docker-compose.yml
 │   ├─ healthcheck: pg_isready
 │   └─ init: 镜像内置 init.sql → 共享卷 → postgres 初始化
 │
-└── memory-server   # FastMCP + FastAPI
+├── memory-server   # FastMCP + FastAPI（REST / Web）
+│   ├─ depends_on: postgres (healthy)
+│   ├─ env_file: .env
+│   ├─ restart: unless-stopped
+│   └─ healthcheck: GET /api/v1/health（端口 8000）
+│
+└── memomcp-mcp     # MCP HTTP（端口 9000）
     ├─ depends_on: postgres (healthy)
-    ├─ env_file: .env
+    ├─ command: python -m app.main --mcp --transport http --port 9000
     ├─ restart: unless-stopped
-    └─ healthcheck: /health endpoint
+    └─ healthcheck: TCP 9000（覆盖镜像内置的 8000 REST 检查）
 ```
 
 启动：`docker compose up -d`
